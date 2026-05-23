@@ -19,7 +19,7 @@ export default function ParcelePage() {
           <p className="text-ink-muted">Nicio parcelă înregistrată.</p>
         </div>
       ) : (
-        <ul className="space-y-3" role="list">
+        <ul className="space-y-3 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-3 lg:space-y-0" role="list">
           {parcels.map(p => (
             <li key={p.id} role="listitem">
               <Link href={`/fermier/parcele/${p.id}`} className="flex bg-white rounded-2xl p-4 shadow-sm border border-hair-soft hover:shadow-md transition-shadow items-center gap-3">

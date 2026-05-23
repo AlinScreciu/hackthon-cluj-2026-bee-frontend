@@ -35,14 +35,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-cream px-4 relative overflow-hidden">
-      {/* Honeycomb overlay */}
-      <div
-        className="absolute inset-0 pointer-events-none honeycomb-bg opacity-[0.035]"
-        aria-hidden
-        style={{ backgroundColor: 'transparent' }}
-      />
-
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden">
       <div className="w-full max-w-sm relative z-10">
         {/* Brand + mascot */}
         <div className="text-center mb-6">
@@ -50,6 +43,7 @@ export default function LoginPage() {
             <BeeLogo size={72} aria-hidden />
           </div>
           <h1 className="text-[22px] font-bold text-ink tracking-[-0.02em]">Beelive</h1>
+          <p className="text-[12.5px] italic text-purple/80 mt-1.5">{t.brand.tagline}</p>
           <p className="text-ink-muted mt-1 text-[13.5px]">{t.login.subtitle}</p>
           <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-purple mt-2 mb-1">ROeID · Pasul 1</p>
         </div>
@@ -69,7 +63,7 @@ export default function LoginPage() {
                 onChange={e => setCnp(e.target.value.replace(/\D/g, '').slice(0, 13))}
                 placeholder={t.login.cnpPlaceholder}
                 maxLength={13}
-                className="w-full h-12 px-4 rounded-[12px] border-[1.5px] border-hair bg-white text-ink text-[14px] placeholder:text-ink-muted focus:outline-none focus:border-purple transition-colors"
+                className="w-full h-12 px-4 rounded-[12px] border-[1.5px] border-hair bg-white text-ink text-[14px] placeholder:text-ink-muted focus:outline-none focus:border-purple focus-visible:ring-2 focus-visible:ring-purple focus-visible:ring-offset-1 transition-colors"
                 aria-required="true"
                 aria-describedby={error ? 'login-error' : undefined}
               />
@@ -85,7 +79,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full h-12 px-4 rounded-[12px] border-[1.5px] border-hair bg-white text-ink text-[14px] placeholder:text-ink-muted focus:outline-none focus:border-purple transition-colors"
+                className="w-full h-12 px-4 rounded-[12px] border-[1.5px] border-hair bg-white text-ink text-[14px] placeholder:text-ink-muted focus:outline-none focus:border-purple focus-visible:ring-2 focus-visible:ring-purple focus-visible:ring-offset-1 transition-colors"
                 aria-required="true"
               />
             </div>
@@ -109,12 +103,6 @@ export default function LoginPage() {
           </form>
         </div>
 
-        {process.env.NODE_ENV !== 'production' && (
-          <p className="text-center text-[11px] text-ink-muted mt-5 leading-relaxed">
-            Date de test: CNP <code className="font-mono bg-hair-soft px-1 rounded">1900101400001</code> / parolă <code className="font-mono bg-hair-soft px-1 rounded">test1234</code><br />
-            Roluri: <code className="font-mono">...400001</code>=apicultor · <code className="font-mono">...400002</code>=fermier · <code className="font-mono">...400003</code>=inspector
-          </p>
-        )}
       </div>
     </div>
   )

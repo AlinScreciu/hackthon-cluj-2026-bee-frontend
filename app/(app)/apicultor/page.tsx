@@ -61,11 +61,15 @@ function SectionHeader({ label, href, linkLabel }: { label: string; href?: strin
 export default function ApicultorPage() {
   const { user } = useAuth()
   const { data: apiariesData, isLoading: loadingApiaries } = useApiaries()
-  const { data: alertsData } = useAlerts('active')
+  const { data: activeAlertsData } = useAlerts('active')
+  const { data: allAlertsData } = useAlerts('all')
   const { mutate: confirmAlert, isPending: confirmPending } = useConfirmAlert()
 
   const apiaries = apiariesData?.items ?? []
-  const activeAlerts = alertsData?.items ?? []
+  const activeAlerts = activeAlertsData?.items ?? []
+  const recentAlerts = allAlertsData?.items ?? []
+  // Closest still-active dispatch wins the hero — most urgent first
+  const heroAlert = [...activeAlerts].sort((a, b) => a.distance_km - b.distance_km)[0]
   const hasAlert = activeAlerts.length > 0
   const totalHives = apiaries.reduce((s, a) => s + a.hive_count, 0)
 
@@ -74,46 +78,110 @@ export default function ApicultorPage() {
   const hour = new Date().getHours()
   const timeGreeting = hour < 12 ? 'dimineața' : hour < 18 ? 'ziua' : 'seara'
 
+  const apiaryRow = (apiary: Apiary) => (
+    <Link
+      key={apiary.id}
+      href={`/apicultor/stupine/${apiary.id}`}
+      aria-label={`${apiary.name} — ${apiary.hive_count} stupi, ${apiary.status === 'safe' ? 'în siguranță' : apiary.status === 'warning' ? 'avertizare' : 'pericol'}`}
+    >
+      <div className="bg-white rounded-[14px] p-3.5 mb-2 flex items-center gap-3 hover:shadow-sm transition-shadow border border-hair-soft">
+        <HiveIcon status={apiary.status} />
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-ink text-[14px] truncate leading-snug">{apiary.name}</p>
+          <p className="text-[12px] text-ink-muted mt-0.5">
+            {apiary.hive_count} stupi
+          </p>
+          {apiary.status !== 'safe' && apiary.current_risk.nearest_spray_km !== null ? (
+            <p className="text-[11px] text-honey-deep font-semibold flex items-center gap-1 mt-1">
+              <MapPin size={10} aria-hidden />
+              {apiary.current_risk.nearest_spray_km.toFixed(1)} km de stropire
+            </p>
+          ) : (
+            <p className="text-[11px] text-ink-muted flex items-center gap-1 mt-1">
+              <Wind size={10} aria-hidden />
+              {apiary.type === 'permanent' ? 'Permanent' : 'Pastoral'}
+            </p>
+          )}
+        </div>
+        <StatusBadge status={apiary.status} />
+      </div>
+    </Link>
+  )
+
+  const activityFeed = (
+    recentAlerts.length === 0 ? (
+      <EmptyState
+        message="Zero alerte. Zumzet liniștit."
+        subtitle="Când un fermier anunță o stropire, te alertăm imediat."
+      />
+    ) : (
+      <div className="space-y-2">
+        {recentAlerts.slice(0, 3).map(alert => (
+          <Link
+            key={alert.alert_dispatch_id}
+            href={`/apicultor/alerte/${alert.alert_dispatch_id}`}
+            aria-label={`Alertă: stropire cu ${alert.substance} la ${alert.distance_km.toFixed(1)} km de ${alert.apiary_name}`}
+          >
+            <div className="bg-white rounded-[14px] px-3.5 py-3 mb-2 flex items-start gap-3 border border-hair-soft hover:shadow-sm transition-shadow">
+              <span
+                className="w-2 h-2 rounded-full mt-1.5 shrink-0"
+                style={{ background: '#EEA727' }}
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] text-ink leading-snug">
+                  <span className="font-semibold">Un fermier</span>
+                  {' '}a anunțat stropire cu{' '}
+                  <span className="font-semibold">{alert.substance}</span>
+                  {' '}la {alert.distance_km.toFixed(1)} km
+                </p>
+              </div>
+              <ToxBadge toxicity={alert.toxicity} />
+            </div>
+          </Link>
+        ))}
+      </div>
+    )
+  )
+
   return (
-    <div className="px-4 md:px-6 lg:px-8 py-5 space-y-7">
+    <div className="px-4 md:px-6 lg:px-8 py-5 space-y-7 lg:max-w-none lg:grid lg:grid-cols-12 lg:gap-6 lg:space-y-0">
 
       {/* ── Hero ── */}
       {hasAlert ? (
         /* Alert hero */
         <div
-          className="rounded-[20px] p-5 relative overflow-hidden"
+          className="rounded-[20px] p-5 relative overflow-hidden lg:col-span-12"
           style={{ background: 'rgba(238,167,39,0.15)', border: '1.5px solid rgba(238,167,39,0.30)' }}
         >
-          <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-honey flex items-center gap-1.5 mb-1">
-            <AlertTriangle size={12} /> Atenție
+          <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-honey-deep flex items-center gap-1.5 mb-1">
+            <AlertTriangle size={12} aria-hidden /> Atenție
           </p>
           <h1 className="text-[22px] font-bold text-ink tracking-[-0.02em] leading-tight">
             {activeAlerts.length} {activeAlerts.length === 1 ? 'alertă activă' : 'alerte active'}
           </h1>
-          {activeAlerts[0] && (
+          {heroAlert && (
             <p className="text-[13px] text-ink-soft mt-1">
-              Stropire la {activeAlerts[0].distance_km.toFixed(1)} km de {activeAlerts[0].apiary_name}
+              Stropire la {heroAlert.distance_km.toFixed(1)} km de {heroAlert.apiary_name}
             </p>
           )}
           <BeeLogo size={52} aria-hidden className="absolute right-4 top-3 opacity-40" />
         </div>
       ) : (
-        /* Safe hero */
+        /* Safe hero — solid pale green (masks body hex wallpaper) */
         <div
-          className="rounded-[20px] p-5 relative overflow-hidden"
+          className="rounded-[20px] p-5 relative overflow-hidden lg:col-span-12 lg:min-h-[140px] lg:flex lg:flex-col lg:justify-center"
           style={{
-            background: 'linear-gradient(135deg, rgba(22,163,74,0.09) 0%, rgba(255,251,235,0.95) 100%)',
-            border: '1.5px solid rgba(22,163,74,0.18)',
-            backgroundImage: `linear-gradient(135deg, rgba(22,163,74,0.09) 0%, rgba(255,251,235,0.95) 100%), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='50'%3E%3Cpath d='M14 33L0 25V9L14 1l14 8v16L14 33zm0 0l14 8v9L14 50 0 42V33l14-8z' fill='none' stroke='rgba(22,163,74,0.07)' stroke-width='1'/%3E%3C/svg%3E")`,
+            backgroundColor: '#e8f6ed',
+            border: '1.5px solid rgba(22,163,74,0.28)',
           }}
         >
-          <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-safe mb-1">
+          <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-safe-deep mb-1">
             Bună {timeGreeting}, {firstName}
           </p>
           <h1 className="text-[20px] font-bold text-ink tracking-[-0.02em] leading-snug">
             Stupinele tale sunt în siguranță
           </h1>
-          <p className="text-[12px] text-ink-muted mt-1.5">
+          <p className="text-[12px] text-ink-soft mt-1.5">
             {totalHives} {totalHives === 1 ? 'stup' : 'stupi'} · {activeAlerts.length} alerte
           </p>
           <BeeLogo size={52} aria-hidden className="absolute right-4 top-3 opacity-25" />
@@ -121,24 +189,59 @@ export default function ApicultorPage() {
       )}
 
       {/* ── Active alerts preview ── */}
-      {hasAlert && (
-        <section aria-live="assertive">
+      {hasAlert && heroAlert && (
+        <section aria-live="assertive" className="lg:col-span-8">
           <SectionHeader label="Alertă urgentă" href="/apicultor/alerte" linkLabel="Toate alertele" />
           <div className="space-y-3">
-            {activeAlerts.slice(0, 1).map(alert => (
-              <BzzBzzCard
-                key={alert.alert_dispatch_id}
-                alert={alert}
-                onConfirm={(action) => confirmAlert({ id: alert.alert_dispatch_id, action })}
-                isPending={confirmPending}
-              />
-            ))}
+            <BzzBzzCard
+              key={heroAlert.alert_dispatch_id}
+              alert={heroAlert}
+              onConfirm={(action) => confirmAlert({ id: heroAlert.alert_dispatch_id, action })}
+              isPending={confirmPending}
+            />
           </div>
         </section>
       )}
 
-      {/* ── Apiaries ── */}
-      <section>
+      {/* ── Desktop rail (lg+ only) ──
+          With an active alert it stacks vertically beside the BzzBzzCard (col-span-4).
+          With no alert it goes full-width and the two sections sit side-by-side. */}
+      <aside
+        className={
+          hasAlert
+            ? 'hidden lg:flex lg:col-span-4 lg:flex-col lg:gap-6'
+            : 'hidden lg:grid lg:col-span-12 lg:grid-cols-2 lg:gap-6'
+        }
+      >
+        <section>
+          <SectionHeader label="Stupinele tale" href="/apicultor/stupine" />
+          {loadingApiaries ? (
+            <Spinner size="sm" className="py-4" />
+          ) : apiaries.length === 0 ? (
+            <EmptyState
+              message="Nicio stupină înregistrată."
+              action={{ label: 'Adaugă prima stupină', href: '/apicultor/stupine/nou' }}
+              albiSize={56}
+            />
+          ) : (
+            <div className="space-y-3">
+              {apiaries.slice(0, 4).map(apiaryRow)}
+              {apiaries.length > 4 && (
+                <Link href="/apicultor/stupine" className="block text-center text-[12px] font-semibold text-purple py-2 hover:text-purple-soft">
+                  + {apiaries.length - 4} mai multe stupine
+                </Link>
+              )}
+            </div>
+          )}
+        </section>
+        <section>
+          <SectionHeader label="Activitate recentă" href="/apicultor/alerte" linkLabel="Toate alertele" />
+          {activityFeed}
+        </section>
+      </aside>
+
+      {/* ── Apiaries (mobile/tablet only at lg+) ── */}
+      <section className="lg:hidden lg:col-span-12">
         <SectionHeader label="Stupinele tale" href="/apicultor/stupine" />
         {loadingApiaries ? (
           <Spinner size="sm" className="py-4" />
@@ -150,32 +253,7 @@ export default function ApicultorPage() {
           />
         ) : (
           <div className="space-y-3">
-            {apiaries.slice(0, 4).map(apiary => (
-              <Link key={apiary.id} href={`/apicultor/stupine/${apiary.id}`}>
-                <div className="bg-white rounded-[14px] p-3.5 mb-2 flex items-center gap-3 hover:shadow-sm transition-shadow border border-hair-soft">
-                  <HiveIcon status={apiary.status} />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-ink text-[14px] truncate leading-snug">{apiary.name}</p>
-                    <p className="text-[12px] text-ink-muted mt-0.5">
-                      {apiary.hive_count} stupi
-                    </p>
-                    {/* Wind / nearest spray */}
-                    {apiary.status !== 'safe' && apiary.current_risk.nearest_spray_km !== null ? (
-                      <p className="text-[11px] text-honey font-semibold flex items-center gap-1 mt-1">
-                        <MapPin size={10} />
-                        {apiary.current_risk.nearest_spray_km.toFixed(1)} km de stropire
-                      </p>
-                    ) : (
-                      <p className="text-[11px] text-ink-muted flex items-center gap-1 mt-1">
-                        <Wind size={10} />
-                        {apiary.type === 'permanent' ? 'Permanent' : 'Pastoral'}
-                      </p>
-                    )}
-                  </div>
-                  <StatusBadge status={apiary.status} />
-                </div>
-              </Link>
-            ))}
+            {apiaries.slice(0, 4).map(apiaryRow)}
             {apiaries.length > 4 && (
               <Link href="/apicultor/stupine" className="block text-center text-[12px] font-semibold text-purple py-2 hover:text-purple-soft">
                 + {apiaries.length - 4} mai multe stupine
@@ -189,43 +267,16 @@ export default function ApicultorPage() {
       {!loadingApiaries && apiaries.length === 0 && (
         <Link
           href="/apicultor/stupine/nou"
-          className="flex items-center justify-center gap-2 h-12 rounded-[12px] bg-purple text-white font-bold text-[15px] hover:bg-purple-soft transition-colors"
+          className="flex items-center justify-center gap-2 h-12 rounded-[12px] bg-purple text-white font-bold text-[15px] hover:bg-purple-soft transition-colors lg:col-span-8"
         >
           <Plus size={18} /> Înregistrează stupina
         </Link>
       )}
 
-      {/* ── Activitate recentă ── */}
-      <section>
+      {/* ── Activitate recentă (mobile/tablet only at lg+) ── */}
+      <section className="lg:hidden lg:col-span-12">
         <SectionHeader label="Activitate recentă" href="/apicultor/alerte" linkLabel="Toate alertele" />
-        {activeAlerts.length === 0 ? (
-          <EmptyState
-            message="Zero alerte. Zumzet liniștit."
-            subtitle="Când un fermier anunță o stropire, te alertăm imediat."
-          />
-        ) : (
-          <div className="space-y-2">
-            {activeAlerts.slice(0, 3).map(alert => (
-              <Link key={alert.alert_dispatch_id} href={`/apicultor/alerte/${alert.alert_dispatch_id}`}>
-                <div className="bg-white rounded-[14px] px-3.5 py-3 mb-2 flex items-start gap-3 border border-hair-soft hover:shadow-sm transition-shadow">
-                  <span
-                    className="w-2 h-2 rounded-full mt-1.5 shrink-0"
-                    style={{ background: '#EEA727' }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] text-ink leading-snug">
-                      <span className="font-semibold">{alert.farmer_name_masked}</span>
-                      {' '}a anunțat stropire cu{' '}
-                      <span className="font-semibold">{alert.substance}</span>
-                      {' '}la {alert.distance_km.toFixed(1)} km
-                    </p>
-                  </div>
-                  <ToxBadge toxicity={alert.toxicity} />
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
+        {activityFeed}
       </section>
     </div>
   )

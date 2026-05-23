@@ -57,11 +57,15 @@ export default function FermierPage() {
   const hour = new Date().getHours()
   const timeGreeting = hour < 12 ? 'dimineața' : hour < 18 ? 'ziua' : 'seara'
 
+  const pastReports = reports.filter(r => r.status === 'completed' || r.status === 'cancelled')
+  const totalNotified = reports.reduce((s, r) => s + (r.affected_apiaries_count ?? 0), 0)
+  const latestReport = reports[0]
+
   return (
-    <div className="px-4 md:px-6 lg:px-8 py-5 space-y-7">
+    <div className="px-4 md:px-6 lg:px-8 py-5 space-y-7 lg:space-y-0 lg:max-w-none lg:grid lg:grid-cols-12 lg:gap-6">
 
       {/* ── Hero ── */}
-      <div className="honeycomb-bg rounded-[20px] p-5 relative overflow-hidden">
+      <div className="honeycomb-bg rounded-[20px] p-5 relative overflow-hidden lg:col-span-8">
         <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-white/80 mb-1">
           Bună {timeGreeting}, {firstName}
         </p>
@@ -79,8 +83,34 @@ export default function FermierPage() {
         </Link>
       </div>
 
+      {/* ── Activitate recentă (desktop only) ── */}
+      <aside className="hidden lg:flex lg:col-span-4 bg-white rounded-[16px] border border-hair-soft p-4 flex-col">
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-purple mb-3">Activitate recentă</h2>
+        {loadingReports ? (
+          <Spinner size="sm" className="py-4 mx-auto" />
+        ) : !latestReport ? (
+          <p className="text-[13px] text-ink-muted">Niciun raport încă</p>
+        ) : (
+          <>
+            <p className="text-[12px] text-ink-soft mb-3">
+              <span className="font-semibold text-ink">{reports.length}</span> rapoarte în total
+            </p>
+            <Link
+              href={`/fermier/rapoarte/${latestReport.id}`}
+              className="block rounded-[12px] border border-hair-soft p-3 hover:shadow-sm transition-shadow"
+            >
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <p className="text-[13px] font-semibold text-ink truncate">{latestReport.parcel.name}</p>
+                <ToxBadge toxicity={latestReport.toxicity} />
+              </div>
+              <p className="text-[11.5px] text-ink-muted">{formatDate(latestReport.scheduled_at)}</p>
+            </Link>
+          </>
+        )}
+      </aside>
+
       {/* ── Stats ── */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 lg:col-span-12 lg:grid-cols-4">
         <div className="bg-white rounded-[16px] p-4 border border-hair-soft" aria-label={`${parcels.length} parcele active, ${totalHa.toFixed(1)} hectare total`}>
           <p className="text-[28px] font-bold text-purple tracking-[-0.02em] leading-none">{loadingParcels ? '—' : parcels.length}</p>
           <p className="text-[12px] font-semibold text-ink-soft mt-1">Parcele active</p>
@@ -89,9 +119,22 @@ export default function FermierPage() {
         <div className="bg-white rounded-[16px] p-4 border border-hair-soft" aria-label={`${reports.length} rapoarte în ${currentYear}`}>
           <p className="text-[28px] font-bold text-safe tracking-[-0.02em] leading-none">{loadingReports ? '—' : reports.length}</p>
           <p className="text-[12px] font-semibold text-ink-soft mt-1">Rapoarte {currentYear}</p>
-          <p className="text-[11px] text-ink-muted">toate pe ledger</p>
+          <p className="text-[11px] text-ink-muted">toate în registru</p>
+        </div>
+        <div className="hidden lg:block bg-white rounded-[16px] p-4 border border-hair-soft">
+          <p className="text-[28px] font-bold text-honey-deep tracking-[-0.02em] leading-none">{loadingReports ? '—' : totalNotified}</p>
+          <p className="text-[12px] font-semibold text-ink-soft mt-1">Apicultori notificați</p>
+          <p className="text-[11px] text-ink-muted">cumulat</p>
+        </div>
+        <div className="hidden lg:block bg-white rounded-[16px] p-4 border border-hair-soft">
+          <p className="text-[28px] font-bold text-purple tracking-[-0.02em] leading-none">{loadingReports ? '—' : pastReports.length}</p>
+          <p className="text-[12px] font-semibold text-ink-soft mt-1">Procese încheiate</p>
+          <p className="text-[11px] text-ink-muted">din {reports.length} totale</p>
         </div>
       </div>
+
+      {/* ── Parcels + Recent reports (side-by-side on lg) ── */}
+      <div className="space-y-7 lg:space-y-0 lg:col-span-12 lg:grid lg:grid-cols-2 lg:gap-6">
 
       {/* ── Parcels ── */}
       <section>
@@ -102,10 +145,15 @@ export default function FermierPage() {
           <p className="text-center text-[13px] text-ink-muted py-4">Nicio parcelă înregistrată.</p>
         ) : (
           <div className="space-y-3" role="list">
-            {parcels.slice(0, 3).map(parcel => {
+            {parcels.slice(0, 5).map(parcel => {
               const nextSpray = reports.find(r => r.parcel_id === parcel.id && r.status === 'scheduled')
               return (
-                <Link key={parcel.id} href={`/fermier/parcele/${parcel.id}`} role="listitem">
+                <Link
+                  key={parcel.id}
+                  href={`/fermier/parcele/${parcel.id}`}
+                  role="listitem"
+                  aria-label={`${parcel.name}, ${parcel.locality}, ${parcel.surface_ha} hectare${nextSpray ? `, stropire programată: ${nextSpray.substance}` : ''}`}
+                >
                   <div className="bg-white rounded-[14px] p-3.5 mb-2 flex items-start gap-3 hover:shadow-sm transition-shadow border border-hair-soft">
                     <ParcelIcon />
                     <div className="flex-1 min-w-0">
@@ -123,8 +171,8 @@ export default function FermierPage() {
                       </p>
                       {nextSpray && (
                         <div className="inline-flex items-center gap-1 mt-1.5 px-2 py-[3px] rounded-[6px] bg-pollen/15">
-                          <LuTriangleAlert size={11} className="text-honey shrink-0" />
-                          <span className="text-[11px] text-honey font-semibold">
+                          <LuTriangleAlert size={11} className="text-honey-deep shrink-0" aria-hidden />
+                          <span className="text-[11px] text-honey-deep font-semibold">
                             Următoarea: {formatDateTime(nextSpray.scheduled_at)} · {nextSpray.substance}
                           </span>
                         </div>
@@ -147,8 +195,13 @@ export default function FermierPage() {
           <p className="text-center text-[13px] text-ink-muted py-4">Niciun raport încă.</p>
         ) : (
           <div className="space-y-3" role="list">
-            {reports.slice(0, 3).map(r => (
-              <Link key={r.id} href={`/fermier/rapoarte/${r.id}`} role="listitem">
+            {reports.slice(0, 5).map(r => (
+              <Link
+                key={r.id}
+                href={`/fermier/rapoarte/${r.id}`}
+                role="listitem"
+                aria-label={`Raport stropire ${r.parcel.name}, ${formatDate(r.scheduled_at)}`}
+              >
                 <div className="bg-white rounded-[14px] p-3.5 mb-2 flex items-center gap-3 hover:shadow-sm transition-shadow border border-hair-soft">
                   <div className="w-9 h-9 rounded-[10px] bg-hair-soft flex items-center justify-center shrink-0">
                     <FileText size={18} className="text-purple-soft" />
@@ -166,6 +219,7 @@ export default function FermierPage() {
           </div>
         )}
       </section>
+      </div>
     </div>
   )
 }

@@ -91,7 +91,7 @@ export function CascadeRow({ dispatch, delay = 0 }: CascadeRowProps) {
   const borderColor = confirmed ? 'rgba(22,163,74,0.25)' : isUnconfirmed ? 'rgba(238,167,39,0.30)' : isFailed ? 'rgba(220,38,38,0.25)' : 'rgba(77,43,140,0.10)'
   const borderLeftColor = confirmed ? '#16A34A' : isUnconfirmed ? '#EEA727' : isFailed ? '#DC2626' : '#85489D'
 
-  const initials = dispatch.beekeeper_initials.replace(/[\s.]/g, '').slice(0, 2).toUpperCase()
+  const initials = 'AP'
 
   return (
     <motion.div
@@ -122,11 +122,11 @@ export function CascadeRow({ dispatch, delay = 0 }: CascadeRowProps) {
           {/* Name + apiary + distance */}
           <div className="flex-1 min-w-0">
             <p className="text-[13px] font-semibold text-ink truncate leading-snug">
-              {dispatch.beekeeper_initials}
+              Apicultor
               <span className="text-ink-muted font-normal"> · {dispatch.apiary_name} · {dispatch.distance_km.toFixed(1)} km</span>
               {dispatch.downwind && (
-                <span className="inline-flex items-center gap-0.5 ml-1 text-[10px] text-honey font-medium" title="Favorizat de vânt">
-                  <Wind size={10} />
+                <span className="inline-flex items-center gap-0.5 ml-1 text-[10px] text-honey-deep font-medium" title="Favorizat de vânt" aria-label="Favorizat de vânt">
+                  <Wind size={10} aria-hidden />
                 </span>
               )}
             </p>

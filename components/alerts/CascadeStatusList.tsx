@@ -38,7 +38,7 @@ export function CascadeStatusList({ sprayId, initialDispatchCount = 2 }: Cascade
       const curr = d.final_status ?? ''
       if (prev !== undefined && prev !== curr && curr.startsWith('confirmed')) {
         setAnnouncement(
-          `${d.beekeeper_initials}, ${d.apiary_name}: ${
+          `Apicultor, ${d.apiary_name}: ${
             t.cascade.finalStatus[d.final_status as keyof typeof t.cascade.finalStatus] ?? 'confirmat'
           }`
         )

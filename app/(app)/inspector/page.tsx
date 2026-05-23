@@ -1,6 +1,6 @@
 'use client'
 import { useAuth } from '@/lib/hooks/useAuth'
-import { useInspectorMapData, useDamageClaims } from '@/lib/api/queries'
+import { useInspectorMapData, useDamageClaims, useFarmers } from '@/lib/api/queries'
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
 import { formatDate } from '@/lib/format'
@@ -37,11 +37,12 @@ function latLngToFloat(lat: number, lng: number, z: number) {
 interface MiniMapMarker { lat: number; lng: number; color: string; size: number; border?: string }
 
 function InspectorMiniMap({
-  apiaries, sprays, damages,
+  apiaries, sprays, damages, lgHeight,
 }: {
   apiaries: { id: string; lat: number; lng: number; status: string }[]
   sprays:   { id: string; lat: number; lng: number }[]
   damages:  { id: string; lat: number; lng: number }[]
+  lgHeight?: number
 }) {
   const zoom = 12
   const centerLat = 46.77; const centerLng = 23.59
@@ -63,9 +64,12 @@ function InspectorMiniMap({
     return { left: `calc(50% + ${px}px)`, top: `calc(50% + ${py}px)` }
   }
 
+  const outerHeightCls = lgHeight ? 'h-[130px] lg:h-[420px]' : 'h-[130px]'
+  const innerHeightCls = lgHeight ? 'h-[100px] lg:h-[390px]' : 'h-[100px]'
+
   return (
-    <div className="w-full rounded-[12px] overflow-hidden border border-hair-soft" style={{ height: 130 }}>
-      <div className="relative bg-[#aad3df] overflow-hidden" style={{ height: 100, pointerEvents: 'none', userSelect: 'none' }}>
+    <div className={`w-full rounded-[12px] overflow-hidden border border-hair-soft ${outerHeightCls}`}>
+      <div className={`relative bg-[#aad3df] overflow-hidden ${innerHeightCls}`} style={{ pointerEvents: 'none', userSelect: 'none' }}>
         {/* Tile grid — entire container pointer-events:none so scroll passes through */}
         <div style={{
           position: 'absolute', width: 768, height: 768,
@@ -141,17 +145,19 @@ export default function InspectorPage() {
   const { user } = useAuth()
   const { data: mapData, isLoading: isLoadingMap } = useInspectorMapData()
   const { data: damagesData, isLoading: isLoadingDamages } = useDamageClaims()
+  const { data: farmersData, isLoading: isLoadingFarmers } = useFarmers()
 
   const activeApiaries = mapData?.apiaries?.length ?? 0
   const activeSprays = mapData?.active_sprays?.length ?? 0
   const damages = mapData?.damage_claims?.length ?? 0
+  const farmersCount = farmersData?.items?.length ?? 0
   const damageClaims = damagesData?.items ?? []
 
   // Week number
   const weekNum = Math.ceil((new Date().getDate() + new Date(new Date().getFullYear(), new Date().getMonth(), 1).getDay()) / 7)
 
   return (
-    <div className="px-4 md:px-6 lg:px-8 py-5 space-y-7">
+    <div className="px-4 md:px-6 lg:px-8 py-5 space-y-7 lg:space-y-6">
 
       {/* ── Header ── */}
       <div>
@@ -164,14 +170,14 @@ export default function InspectorPage() {
       </div>
 
       {/* ── Stats ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
         <div className="bg-white rounded-[16px] p-3 border border-hair-soft text-center" aria-label={`${isLoadingMap ? '—' : activeApiaries} stupine active în județ`}>
           <p className="text-[26px] font-bold text-purple tracking-[-0.02em] leading-none">{isLoadingMap ? '—' : activeApiaries}</p>
           <p className="text-[11px] font-semibold text-ink-soft mt-1">Stupine active</p>
           <p className="text-[10px] text-ink-muted">în județ</p>
         </div>
         <div className="bg-white rounded-[16px] p-3 border border-hair-soft text-center" aria-label={`${isLoadingMap ? '—' : activeSprays} stropiri săptămâna asta`}>
-          <p className="text-[26px] font-bold text-honey tracking-[-0.02em] leading-none">{isLoadingMap ? '—' : activeSprays}</p>
+          <p className="text-[26px] font-bold text-honey-deep tracking-[-0.02em] leading-none">{isLoadingMap ? '—' : activeSprays}</p>
           <p className="text-[11px] font-semibold text-ink-soft mt-1">Stropiri</p>
           <p className="text-[10px] text-ink-muted">săpt. asta</p>
         </div>
@@ -180,20 +186,29 @@ export default function InspectorPage() {
           <p className="text-[11px] font-semibold text-ink-soft mt-1">Pagube</p>
           <p className="text-[10px] text-ink-muted">raportate</p>
         </div>
+        <div className="hidden lg:block bg-white rounded-[16px] p-3 border border-hair-soft text-center" aria-label={`${isLoadingFarmers ? '—' : farmersCount} fermieri în județ`}>
+          <p className="text-[26px] font-bold text-purple tracking-[-0.02em] leading-none">{isLoadingFarmers ? '—' : farmersCount}</p>
+          <p className="text-[11px] font-semibold text-ink-soft mt-1">Fermieri</p>
+          <p className="text-[10px] text-ink-muted">în județ</p>
+        </div>
       </div>
 
+      {/* ── Map + Damages (lg: side-by-side) ── */}
+      <div className="space-y-7 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-6">
+
       {/* ── Mini map ── */}
-      <section>
+      <section className="lg:col-span-7">
         <SectionHeader label="Hartă activitate" href="/inspector/harta" linkLabel="Hartă completă →" />
         <InspectorMiniMap
           apiaries={mapData?.apiaries ?? []}
           sprays={mapData?.active_sprays ?? []}
           damages={mapData?.damage_claims ?? []}
+          lgHeight={420}
         />
       </section>
 
       {/* ── Damage claims preview ── */}
-      <section>
+      <section className="lg:col-span-5">
         <SectionHeader
           label="Pagube de revizuit"
           href="/inspector/pagube"
@@ -206,7 +221,7 @@ export default function InspectorPage() {
         ) : damageClaims.length === 0 ? (
           <p className="text-center text-[13px] text-ink-muted py-4">Nicio cerere de pagubă.</p>
         ) : (
-          <ul role="list" className="space-y-3">
+          <ul role="list" className="space-y-3 lg:max-h-[420px] lg:overflow-y-auto lg:pr-1">
             {damageClaims.slice(0, 3).map(claim => (
               <li key={claim.id} role="listitem">
                 <Link href="/inspector/pagube" aria-label={`Vezi paguba: ${claim.description || 'Pagubă raportată'} — ${claim.hive_loss_count} stupi morți`}>
@@ -227,7 +242,7 @@ export default function InspectorPage() {
                         {claim.hive_loss_count} stupi morți · {formatDate(claim.created_at)}
                       </p>
                       <div className="flex items-center gap-1.5 mt-1">
-                        <span className="text-[10px] font-mono text-ink-muted bg-hair-soft px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] font-mono text-ink-soft bg-hair-soft px-1.5 py-0.5 rounded">
                           #{claim.ledger_hash.slice(0, 7)}
                         </span>
                         <span
@@ -238,7 +253,7 @@ export default function InspectorPage() {
                         </span>
                       </div>
                     </div>
-                    <ChevronRight size={16} className="text-ink-muted shrink-0" />
+                    <ChevronRight size={16} className="text-ink-muted shrink-0" aria-hidden />
                   </div>
                 </Link>
               </li>
@@ -246,6 +261,8 @@ export default function InspectorPage() {
           </ul>
         )}
       </section>
+
+      </div>
     </div>
   )
 }

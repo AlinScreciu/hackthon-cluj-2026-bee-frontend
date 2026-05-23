@@ -1,5 +1,5 @@
 import { verifySession, errUnauthorized, errNotFound } from '@/app/api/v1/_mock/auth'
-import { APIARIES } from '@/app/api/v1/_mock/data'
+import { APIARIES, LEDGER_EVENTS } from '@/app/api/v1/_mock/data'
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await verifySession()
@@ -7,7 +7,13 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   const { id } = await params
   const apiary = APIARIES.find(a => a.id === id)
   if (!apiary) return errNotFound()
-  return Response.json({ apiary, history: [] })
+  const history = LEDGER_EVENTS
+    .filter(e => {
+      const payload = e.payload as Record<string, unknown>
+      return payload.apiary_id === id
+    })
+    .map(e => ({ hash: e.hash, type: e.type, created_at: e.created_at }))
+  return Response.json({ apiary, history })
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {

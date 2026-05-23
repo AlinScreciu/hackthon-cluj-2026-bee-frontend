@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
 import type {
   User, Apiary, Parcel, SprayReport, AlertView,
-  CascadeStatus, Substance, AlertDispatchPublic, DamageClaim
+  CascadeStatus, Substance, AlertDispatchPublic, DamageClaim, LedgerEventSummary
 } from './types'
 
 export const keys = {
@@ -44,7 +44,7 @@ export function useApiaries() {
 export function useApiary(id: string) {
   return useQuery({
     queryKey: keys.apiary(id),
-    queryFn: () => api.get<{ apiary: Apiary; history: unknown[] }>(`/apiaries/${id}`),
+    queryFn: () => api.get<{ apiary: Apiary; history: LedgerEventSummary[] }>(`/apiaries/${id}`),
   })
 }
 

@@ -41,10 +41,19 @@ export default function MapView({ visibleLayers }: MapViewProps) {
   const showDamage = !visibleLayers || visibleLayers.has('damage')
 
   return (
-    <div role="application" aria-label="Hartă interactivă cu stupine și zone de stropire" style={{ height: '100%', width: '100%' }}>
+    <div
+      role="application"
+      aria-label="Hartă interactivă cu stupine și zone de stropire"
+      aria-describedby="map-keyboard-help"
+      style={{ height: '100%', width: '100%' }}
+    >
+      <p id="map-keyboard-help" className="sr-only">
+        Folosește săgețile pentru a deplasa harta, plus și minus pentru a mări sau micșora. Apasă Tab pentru a naviga între markeri.
+      </p>
       <MapContainer
         center={center}
         zoom={11}
+        keyboard
         style={{ height: '100%', width: '100%' }}
         className="z-0"
       >

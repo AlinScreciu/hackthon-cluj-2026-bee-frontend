@@ -4,11 +4,12 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
+import Select from 'react-select'
 import { useParcels, useSubstances } from '@/lib/api/queries'
 import { api } from '@/lib/api/client'
 import { ApiError } from '@/lib/api/client'
 import { ToxBadge } from '@/components/ui/Badge'
-import { Bell } from 'lucide-react'
+import { Bell, TriangleAlert } from 'lucide-react'
 import type { Toxicity } from '@/lib/api/types'
 
 const schema = z.object({
@@ -30,16 +31,26 @@ function tomorrow() {
   return d.toISOString().slice(0, 16)
 }
 
-const RISK_RADIUS: Record<Toxicity, string> = {
+export const RISK_RADIUS: Record<Toxicity, string> = {
   'T+': '3 km',
   'T': '1,5 km',
   'T-': '750 m',
 }
 
 // Mock affected beekeepers — in production this comes from the API
-const MOCK_AFFECTED = ['Andrei Bodea', 'Cristina Pop', 'Vasile Olaru']
+export const MOCK_AFFECTED = ['Andrei Bodea', 'Cristina Pop', 'Vasile Olaru']
 
-export function RaportStropireForm() {
+export interface RaportLiveValues {
+  substance: string
+  parcel_id: string
+  toxicity: Toxicity | null
+}
+
+export interface RaportStropireFormProps {
+  onLiveValues?: (values: RaportLiveValues) => void
+}
+
+export function RaportStropireForm({ onLiveValues }: RaportStropireFormProps = {}) {
   const router = useRouter()
   const { data: parcelsData } = useParcels()
   const { data: substancesData } = useSubstances()
@@ -52,7 +63,7 @@ export function RaportStropireForm() {
 
   const lastParcelId = typeof window !== 'undefined' ? localStorage.getItem('ra:last_parcel_id') : null
 
-  const { register, handleSubmit, control, watch, setValue, formState: { errors, isValid } } = useForm<FormValues>({
+  const { register, handleSubmit, control, watch, setValue, setError: setFieldError, clearErrors, formState: { errors, isValid } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       parcel_id: lastParcelId ?? '',
@@ -67,11 +78,42 @@ export function RaportStropireForm() {
 
   const selectedSubstance = watch('substance')
   const selectedParcelId = watch('parcel_id')
+  const selectedSurfaceHa = watch('surface_ha')
+  const selectedScheduledAt = watch('scheduled_at')
+  const parcelMaxHa = parcels.find(p => p.id === selectedParcelId)?.surface_ha
+
+  // Bee-safe window: hours 21:00–05:59 (after sunset / before sunrise).
+  // Anything in [6, 21) overlaps with active foraging — warn but allow.
+  const scheduledHour = selectedScheduledAt ? new Date(selectedScheduledAt).getHours() : null
+  const isRiskyHour = scheduledHour !== null && scheduledHour >= 6 && scheduledHour < 21
+
+  useEffect(() => {
+    if (!parcelMaxHa || !selectedSurfaceHa) {
+      clearErrors('surface_ha')
+      return
+    }
+    if (selectedSurfaceHa > parcelMaxHa) {
+      setFieldError('surface_ha', {
+        type: 'max',
+        message: `Nu poate depăși ${parcelMaxHa} ha (suprafața parcelei)`,
+      })
+    } else {
+      clearErrors('surface_ha')
+    }
+  }, [selectedSurfaceHa, parcelMaxHa, setFieldError, clearErrors])
 
   useEffect(() => {
     const sub = substances.find(s => s.label === selectedSubstance)
     setSelectedToxicity(sub?.toxicity ?? null)
   }, [selectedSubstance, substances])
+
+  useEffect(() => {
+    onLiveValues?.({
+      substance: selectedSubstance ?? '',
+      parcel_id: selectedParcelId ?? '',
+      toxicity: selectedToxicity,
+    })
+  }, [selectedSubstance, selectedParcelId, selectedToxicity, onLiveValues])
 
   useEffect(() => {
     if (selectedParcelId) {
@@ -102,7 +144,7 @@ export function RaportStropireForm() {
     }
   }
 
-  const fieldCls = `w-full h-12 px-4 rounded-xl border border-hair bg-white text-ink text-[14px] focus:outline-none focus:border-purple transition-colors`
+  const fieldCls = `w-full h-12 px-4 rounded-xl border border-hair bg-white text-ink text-[14px] focus:outline-none focus:border-purple focus-visible:ring-2 focus-visible:ring-purple focus-visible:ring-offset-1 transition-colors`
   const labelCls = `block text-[12px] font-semibold text-ink-soft mb-1.5 uppercase tracking-[0.04em]`
   const errorCls = `text-[11px] text-alert mt-1`
 
@@ -110,7 +152,7 @@ export function RaportStropireForm() {
   const selectedParcel = parcels.find(p => p.id === selectedParcelId)
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pb-40">
+    <form id="raport-stropire-form" onSubmit={handleSubmit(onSubmit)} className="space-y-5 pb-56 lg:pb-0">
 
       {/* Parcel */}
       <div>
@@ -120,18 +162,59 @@ export function RaportStropireForm() {
             <span className="text-[11px] text-ink-muted">Autofill din cadastru</span>
           )}
         </div>
-        <select
-          id="parcel_id"
-          {...register('parcel_id')}
-          className={fieldCls}
-          aria-invalid={!!errors.parcel_id}
-          aria-describedby={errors.parcel_id ? 'err-parcel' : undefined}
-        >
-          <option value="">Selectează parcela...</option>
-          {parcels.map(p => (
-            <option key={p.id} value={p.id}>{p.name} – {p.locality}</option>
-          ))}
-        </select>
+        <Controller
+          name="parcel_id"
+          control={control}
+          render={({ field }) => {
+            const options = parcels.map(p => ({
+              value: p.id,
+              label: `${p.name} – ${p.locality}`,
+            }))
+            const selected = options.find(o => o.value === field.value) ?? null
+            return (
+              <Select
+                inputId="parcel_id"
+                instanceId="parcel_id"
+                options={options}
+                value={selected}
+                onChange={opt => field.onChange(opt?.value ?? '')}
+                onBlur={field.onBlur}
+                placeholder="Selectează parcela..."
+                noOptionsMessage={() => 'Nicio parcelă'}
+                isClearable
+                isSearchable
+                unstyled
+                aria-invalid={!!errors.parcel_id}
+                aria-describedby={errors.parcel_id ? 'err-parcel' : undefined}
+                classNames={{
+                  control: ({ isFocused }) =>
+                    `min-h-12 px-2 rounded-xl bg-white text-[14px] border transition-colors ${
+                      isFocused ? 'border-purple' : 'border-hair'
+                    }`,
+                  valueContainer: () => 'px-1.5 gap-1',
+                  placeholder: () => 'text-ink-muted',
+                  singleValue: () => 'text-ink',
+                  input: () => 'text-ink',
+                  indicatorsContainer: () => 'gap-1',
+                  indicatorSeparator: () => 'hidden',
+                  dropdownIndicator: () => 'text-ink-muted px-1.5 hover:text-purple transition-colors',
+                  clearIndicator: () => 'text-ink-muted px-1 hover:text-alert transition-colors cursor-pointer',
+                  menu: () => 'mt-1 bg-white rounded-xl border border-hair shadow-lg overflow-hidden z-50',
+                  menuList: () => 'py-1 max-h-60',
+                  option: ({ isFocused, isSelected }) =>
+                    `px-3 py-2.5 text-[14px] cursor-pointer transition-colors ${
+                      isSelected
+                        ? 'bg-purple/10 text-purple font-semibold'
+                        : isFocused
+                          ? 'bg-hair-soft text-ink'
+                          : 'text-ink'
+                    }`,
+                  noOptionsMessage: () => 'px-3 py-2.5 text-[13px] text-ink-muted text-center',
+                }}
+              />
+            )
+          }}
+        />
         {selectedParcel && (
           <p className="text-[11px] text-ink-muted mt-1">
             {selectedParcel.surface_ha} ha · {selectedParcel.cadastral_number}
@@ -149,13 +232,18 @@ export function RaportStropireForm() {
             type="number"
             step="0.1"
             min="0.1"
+            max={parcelMaxHa}
             placeholder="4.2"
             {...register('surface_ha', { valueAsNumber: true })}
             className={fieldCls}
             aria-invalid={!!errors.surface_ha}
-            aria-describedby={errors.surface_ha ? 'err-surface' : undefined}
+            aria-describedby={errors.surface_ha ? 'err-surface' : parcelMaxHa ? 'hint-surface' : undefined}
           />
-          {errors.surface_ha && <p id="err-surface" className={errorCls}>{errors.surface_ha.message}</p>}
+          {errors.surface_ha
+            ? <p id="err-surface" className={errorCls}>{errors.surface_ha.message}</p>
+            : parcelMaxHa
+              ? <p id="hint-surface" className="text-[11px] text-ink-muted mt-1">max {parcelMaxHa} ha</p>
+              : null}
         </div>
         <div>
           <label htmlFor="crop" className={labelCls}>Cultură</label>
@@ -244,7 +332,7 @@ export function RaportStropireForm() {
             {...register('scheduled_at')}
             className={fieldCls}
             aria-invalid={!!errors.scheduled_at}
-            aria-describedby={errors.scheduled_at ? 'err-scheduled' : undefined}
+            aria-describedby={errors.scheduled_at ? 'err-scheduled' : isRiskyHour ? 'warn-scheduled' : undefined}
           />
           {errors.scheduled_at && <p id="err-scheduled" className={errorCls}>{errors.scheduled_at.message}</p>}
         </div>
@@ -265,6 +353,21 @@ export function RaportStropireForm() {
         </div>
       </div>
 
+      {/* Bee-safe hour warning — non-blocking */}
+      {isRiskyHour && (
+        <div
+          id="warn-scheduled"
+          role="note"
+          className="flex items-start gap-2 rounded-xl px-3 py-2.5 bg-pollen/15 border border-honey/30"
+        >
+          <TriangleAlert size={16} className="text-honey-deep shrink-0 mt-0.5" aria-hidden />
+          <p className="text-[13px] text-honey-deep leading-snug">
+            <strong>Ora poate afecta albinele.</strong> Stropirea în intervalul 06:00–21:00 prinde albinele în zbor.
+            Recomandăm seara târziu sau dimineața devreme.
+          </p>
+        </div>
+      )}
+
       {/* Notes */}
       <div>
         <label htmlFor="notes" className={labelCls}>Observații (opțional)</label>
@@ -273,7 +376,7 @@ export function RaportStropireForm() {
           rows={3}
           placeholder="ex: vânt slab dimineața, drum acces din nord"
           {...register('notes')}
-          className="w-full px-4 py-3 rounded-xl border border-hair bg-white text-ink text-[14px] focus:outline-none focus:border-purple resize-none transition-colors"
+          className="w-full px-4 py-3 rounded-xl border border-hair bg-white text-ink text-[14px] focus:outline-none focus:border-purple focus-visible:ring-2 focus-visible:ring-purple focus-visible:ring-offset-1 resize-none transition-colors"
           aria-invalid={!!errors.notes}
         />
       </div>
@@ -284,30 +387,26 @@ export function RaportStropireForm() {
         </p>
       )}
 
-      {/* Sticky bottom CTA */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 pb-[env(safe-area-inset-bottom)]">
-        <div className="max-w-lg mx-auto px-4 pb-4">
+      {/* Sticky bottom CTA — mobile only (desktop submit lives in RiskPreviewPanel) */}
+      {/* Sits ABOVE MobileTabBar (which is fixed bottom-0 z-30 ~72px tall) */}
+      <div
+        className="fixed left-0 right-0 z-20 lg:hidden"
+        style={{ bottom: 'calc(72px + env(safe-area-inset-bottom))' }}
+      >
+        <div className="max-w-lg mx-auto px-4">
           {isValid && selectedToxicity ? (
-            /* Enhanced CTA — only shown when form is fully valid */
-            <div
-              className="rounded-[16px] px-4 pt-3 pb-4"
-              style={{ background: '#1B0F2E' }}
-            >
-              <p className="text-[13px] text-white/70 leading-snug mb-0.5">
-                <span className="text-pollen font-bold">{MOCK_AFFECTED.length} apicultori</span>
+            <div className="rounded-[16px] px-4 pt-3 pb-4 bg-white border border-purple/20 shadow-lg">
+              <p className="text-[13px] text-ink-soft leading-snug mb-3">
+                <span className="text-purple font-bold">{MOCK_AFFECTED.length} apicultori</span>
                 {' '}în raza de {RISK_RADIUS[selectedToxicity]} vor primi alertă
-              </p>
-              <p className="text-[11.5px] text-white/50 mb-3 truncate">
-                {MOCK_AFFECTED.join(', ')}
               </p>
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full h-12 rounded-[12px] font-bold text-[15px] flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50"
-                style={{ background: '#FFEF5F', color: '#1B0F2E' }}
+                className="w-full h-12 rounded-xl font-bold text-[15px] flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 bg-purple text-white hover:bg-purple-soft"
               >
                 {submitting ? (
-                  <span className="w-4 h-4 rounded-full border-2 border-ink border-t-transparent" style={{ animation: 'spin 0.7s linear infinite' }} />
+                  <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent" style={{ animation: 'spin 0.7s linear infinite' }} />
                 ) : (
                   <>
                     <Bell size={16} />
@@ -315,25 +414,15 @@ export function RaportStropireForm() {
                   </>
                 )}
               </button>
-              <button
-                type="button"
-                onClick={() => router.back()}
-                className="w-full mt-2 text-[13px] text-white/50 text-center py-1 hover:text-white/70 transition-colors"
-              >
-                Salvează ca draft
-              </button>
             </div>
           ) : (
-            /* Simple CTA when form is incomplete */
-            <div className="backdrop-blur-md pt-3 pb-1">
-              <button
-                type="submit"
-                disabled={submitting || !selectedParcelId}
-                className="w-full h-12 bg-purple text-white font-bold text-[15px] rounded-[12px] disabled:opacity-40 hover:bg-purple-soft transition-colors"
-              >
-                {submitting ? 'Se trimite...' : 'Notifică apicultorii'}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={submitting || !selectedParcelId}
+              className="w-full h-12 bg-purple text-white font-bold text-[15px] rounded-xl shadow-lg disabled:opacity-40 hover:bg-purple-soft transition-colors"
+            >
+              {submitting ? 'Se trimite...' : 'Notifică apicultorii'}
+            </button>
           )}
         </div>
       </div>

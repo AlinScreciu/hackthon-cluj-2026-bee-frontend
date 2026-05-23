@@ -32,7 +32,7 @@ export default function AlertDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   return (
-    <div className="px-4 py-4">
+    <div className="px-4 py-4 lg:max-w-2xl lg:mx-auto">
       <button
         onClick={() => router.back()}
         className="flex items-center gap-1 text-purple text-sm font-medium mb-4 hover:text-purple-soft transition-colors"

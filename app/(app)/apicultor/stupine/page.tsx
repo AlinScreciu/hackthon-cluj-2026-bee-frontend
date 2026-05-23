@@ -32,7 +32,7 @@ export default function StupinePage() {
           </Link>
         </div>
       ) : (
-        <ul className="space-y-3" role="list">
+        <ul className="space-y-3 lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:gap-3 lg:space-y-0" role="list">
           {apiaries.map(a => (
             <li key={a.id} role="listitem">
               <Link href={`/apicultor/stupine/${a.id}`} aria-label={`${a.name} — ${a.hive_count} stupi, ${a.status === 'safe' ? 'în siguranță' : a.status === 'warning' ? 'avertizare' : 'pericol'}`}>

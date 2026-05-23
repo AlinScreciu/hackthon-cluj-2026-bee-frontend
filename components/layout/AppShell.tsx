@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { TopBar } from './TopBar'
 import { MobileTabBar } from './MobileTabBar'
+import { Sidebar } from './Sidebar'
 import { SpinnerPage } from '@/components/feedback/Spinner'
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -20,11 +21,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (!user) return null
 
   return (
-    <div className="min-h-screen bg-cream">
-      <TopBar user={user} />
-      <main id="main-content" className="pb-24 md:pb-8 max-w-lg md:max-w-3xl mx-auto">
-        {children}
-      </main>
+    <div className="min-h-screen">
+      <Sidebar user={user} />
+      <div className="lg:pl-[220px]">
+        <TopBar user={user} />
+        <main
+          id="main-content"
+          className="pb-24 md:pb-8 max-w-lg md:max-w-3xl lg:max-w-7xl mx-auto"
+        >
+          {children}
+        </main>
+      </div>
       <MobileTabBar role={user.role} />
     </div>
   )

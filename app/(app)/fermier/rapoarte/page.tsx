@@ -23,10 +23,13 @@ export default function RapoartePage() {
           </Link>
         </div>
       ) : (
-        <ul className="space-y-3" role="list">
+        <ul className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0" role="list">
           {reports.map(r => (
             <li key={r.id} role="listitem">
-              <Link href={`/fermier/rapoarte/${r.id}`}>
+              <Link
+                href={`/fermier/rapoarte/${r.id}`}
+                aria-label={`Raport ${r.parcel.name}, ${formatDate(r.scheduled_at)}, cultură ${r.crop}`}
+              >
                 <div className="bg-white rounded-2xl p-4 shadow-sm flex items-center gap-3">
                   <FileText size={20} className="text-ink-muted shrink-0" aria-hidden />
                   <div className="flex-1 min-w-0">
@@ -36,7 +39,7 @@ export default function RapoartePage() {
                   <div className="flex items-center gap-2">
                     <ToxBadge toxicity={r.toxicity} />
                     <StatusBadge status={r.status} />
-                    <ChevronRight size={14} className="text-ink-muted" />
+                    <ChevronRight size={14} className="text-ink-muted" aria-hidden />
                   </div>
                 </div>
               </Link>

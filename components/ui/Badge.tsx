@@ -35,17 +35,19 @@ type StatusBadgeProps = {
   label?: string
 }
 
+// Solid pastel backgrounds (not translucent) so the body hex wallpaper
+// doesn't bleed through small chips. Text uses the deep accessible variant.
 const STATUS_STYLES: Record<string, string> = {
-  safe: 'bg-safe/10 text-safe border-safe/30',
+  safe: 'bg-[#e8f6ed] text-safe-deep border-safe/30',
   warning: 'bg-honey/20 text-amber-800 border-honey/40',
   danger: 'bg-alert/10 text-alert border-alert/30',
   scheduled: 'bg-purple/10 text-purple border-purple/30',
   in_progress: 'bg-honey/20 text-amber-800 border-honey/40',
-  completed: 'bg-safe/10 text-safe border-safe/30',
+  completed: 'bg-[#e8f6ed] text-safe-deep border-safe/30',
   cancelled: 'bg-gray-100 text-gray-500 border-gray-200',
   filed: 'bg-purple/10 text-purple border-purple/30',
   under_review: 'bg-honey/20 text-amber-800 border-honey/40',
-  accepted: 'bg-safe/10 text-safe border-safe/30',
+  accepted: 'bg-[#e8f6ed] text-safe-deep border-safe/30',
   rejected: 'bg-alert/10 text-alert border-alert/30',
 }
 

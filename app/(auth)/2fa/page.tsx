@@ -33,7 +33,7 @@ function TwoFAForm() {
     if (code.length === 6 && !loading) {
       submitRef.current?.click()
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code])
 
   function handleDigitChange(idx: number, val: string) {
@@ -105,14 +105,7 @@ function TwoFAForm() {
   const methodLabel = method === 'sms' ? 'SMS' : method === 'email' ? 'Email' : 'notificarea push'
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-cream px-4 relative overflow-hidden">
-      {/* Honeycomb overlay */}
-      <div
-        className="absolute inset-0 pointer-events-none honeycomb-bg opacity-[0.035]"
-        aria-hidden
-        style={{ backgroundColor: 'transparent' }}
-      />
-
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden">
       <div className="w-full max-w-sm relative z-10">
         {/* Brand + mascot */}
         <div className="text-center mb-6">
@@ -150,7 +143,8 @@ function TwoFAForm() {
                   onChange={e => handleDigitChange(i, e.target.value)}
                   onKeyDown={e => handleKeyDown(i, e)}
                   aria-label={`Cifra ${i + 1}`}
-                  className="w-[42px] h-[52px] text-center text-xl font-bold font-mono rounded-[10px] border-2 border-purple/30 bg-white text-ink focus:outline-none focus:border-purple transition-colors"
+                  autoComplete={i === 0 ? 'one-time-code' : 'off'}
+                  className="w-[42px] h-[52px] text-center text-xl font-bold font-mono rounded-[10px] border-2 border-purple/30 bg-white text-ink focus:outline-none focus:border-purple focus-visible:ring-2 focus-visible:ring-purple focus-visible:ring-offset-1 transition-colors"
                   style={{
                     animationDelay: `${i * 60}ms`,
                     animation: 'casc-in 0.35s ease-out both',
@@ -236,7 +230,7 @@ function TwoFAForm() {
 export default function TwoFAPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-cream">
+      <div className="min-h-screen flex items-center justify-center">
         <p className="text-ink-muted text-sm">Se încarcă...</p>
       </div>
     }>

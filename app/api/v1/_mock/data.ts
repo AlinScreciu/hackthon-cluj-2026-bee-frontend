@@ -188,6 +188,9 @@ export function computeCascadeStatus(sprayId: string): CascadeStatus | null {
 function computeDispatch(d: AlertDispatchPublic, t: number): AlertDispatchPublic {
   // If in-app confirmed, preserve that status
   if (d.final_status === 'confirmed_app') return d
+  // Preserve seeded "unsafe / unconfirmed" terminal state (cascade exhausted,
+  // beekeeper hasn't responded) — used for the urgent-alert demo dispatch
+  if (d.final_status === 'unconfirmed') return d
 
   // Time-based state machine: t = seconds since dispatch was created
   if (t < 0) {
@@ -571,6 +574,69 @@ sprayReports.set('spray-seed-4', {
   created_at_ms: Date.now(),
 })
 
+// Spray seed urgent: T+ substance, just now, urgent + unconfirmed (demo state)
+// — cascade exhausted all channels but the apicultor hasn't responded yet
+sprayReports.set('spray-seed-urgent', {
+  id: 'spray-seed-urgent',
+  farmer_id: 'user-fermier-1',
+  parcel_id: 'parcel-2',
+  parcel: { name: 'Parcela Apahida Sud', lat: 46.798, lng: 23.745 },
+  crop: 'Rapiță',
+  substance: 'Confidor Energy',
+  toxicity: 'T+',
+  surface_ha: 6.4,
+  scheduled_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+  duration_hours: 4,
+  notes: null,
+  status: 'in_progress',
+  affected_apiaries_count: 1,
+  ledger_hash: 'e5f6a7b8c9d00001e5f6a7b8',
+  created_at: new Date(Date.now() - 120 * 1000).toISOString(),
+  created_at_ms: Date.now() - 120 * 1000,
+})
+
+alertDispatches.set('spray-seed-urgent', [
+  {
+    alert_dispatch_id: 'dispatch-seed-urgent',
+    beekeeper_initials: 'I. M.',
+    apiary_name: 'Stupina Apahida Nord',
+    distance_km: 0.4,
+    downwind: true,
+    channels: {
+      push: { state: 'delivered', at: new Date(Date.now() - 110 * 1000).toISOString() },
+      call: { state: 'no_answer', at: new Date(Date.now() - 80 * 1000).toISOString(), attempts: 3 },
+      sms: { state: 'no_reply', at: new Date(Date.now() - 60 * 1000).toISOString() },
+    },
+    final_status: 'unconfirmed',
+    ledger_hash: 'e5f6a7b8c9d00002e5f6a7b8',
+  },
+])
+
+alertViews.set('dispatch-seed-urgent', {
+  alert_dispatch_id: 'dispatch-seed-urgent',
+  spray_report_id: 'spray-seed-urgent',
+  farmer_name_masked: 'M. Popescu',
+  apiary_id: 'apiary-1',
+  apiary_name: 'Stupina Apahida Nord',
+  substance: 'Confidor Energy',
+  toxicity: 'T+',
+  scheduled_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+  distance_km: 0.4,
+  downwind: true,
+  spray_lat: 46.798,
+  spray_lng: 23.745,
+  wind_direction_deg: 210,
+  channels: {
+    push: { state: 'delivered', at: new Date(Date.now() - 110 * 1000).toISOString() },
+    call: { state: 'no_answer', at: new Date(Date.now() - 80 * 1000).toISOString(), attempts: 3 },
+    sms: { state: 'no_reply', at: new Date(Date.now() - 60 * 1000).toISOString() },
+  },
+  final_status: 'unconfirmed',
+  in_app_action: null,
+  ledger_hash: 'e5f6a7b8c9d00002e5f6a7b8',
+  created_at: new Date(Date.now() - 120 * 1000).toISOString(),
+})
+
 alertDispatches.set('spray-seed-3', [
   {
     alert_dispatch_id: 'dispatch-seed-3a',
@@ -772,5 +838,23 @@ export const LEDGER_EVENTS: LedgerEvent[] = [
     actor_id: 'user-fermier-1',
     payload: { spray_report_id: 'spray-seed-3', substance: 'Decis Mega', toxicity: 'T-', parcel_id: 'parcel-3', surface_ha: 3.8 },
     created_at: '2026-05-23T07:50:00Z',
+  },
+  {
+    id: 'evt-016',
+    hash: 'e5f6a7b8c9d000000000000000000000000000000000000000000000000016dd',
+    prev_hash: 'c3d4e5f6a7b800000000000000000000000000000000000000000000000015cc',
+    type: 'alert.urgent',
+    actor_id: null,
+    payload: { alert_dispatch_id: 'dispatch-seed-2a', apiary_id: 'apiary-1', beekeeper_id: 'user-apicultor-1', distance_km: 0.6, toxicity: 'T+', downwind: true, reason: 'tox_high_downwind_close' },
+    created_at: '2026-05-22T06:44:55Z',
+  },
+  {
+    id: 'evt-017',
+    hash: 'f6a7b8c9d0e100000000000000000000000000000000000000000000000017ee',
+    prev_hash: 'e5f6a7b8c9d000000000000000000000000000000000000000000000000016dd',
+    type: 'alert.urgent',
+    actor_id: null,
+    payload: { alert_dispatch_id: 'dispatch-seed-1a', apiary_id: 'apiary-2', beekeeper_id: 'user-apicultor-1', distance_km: 0.8, toxicity: 'T+', downwind: true, reason: 'tox_high_downwind_close' },
+    created_at: '2026-05-20T05:29:55Z',
   },
 ]

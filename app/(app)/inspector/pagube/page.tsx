@@ -43,7 +43,7 @@ export default function PagubePage() {
           <p className="text-ink-muted">Nicio cerere depusă momentan.</p>
         </div>
       ) : (
-        <ul className="space-y-3" role="list">
+        <ul className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0" role="list">
           {claims.map(claim => (
             <li key={claim.id} role="listitem">
               <div className="bg-white rounded-[16px] p-4 border border-hair-soft">

@@ -43,12 +43,12 @@ function latLngToFloat(lat: number, lng: number, z: number) {
   return { xF, yF }
 }
 
-interface RiskMapPreviewProps {
+export interface RiskMapPreviewProps {
   apiaryLat: number; apiaryLng: number
   sprayLat: number; sprayLng: number
 }
 
-function RiskMapPreview({ apiaryLat, apiaryLng, sprayLat, sprayLng }: RiskMapPreviewProps) {
+export function RiskMapPreview({ apiaryLat, apiaryLng, sprayLat, sprayLng }: RiskMapPreviewProps) {
   const zoom = 15
 
   // Tile grid centred on the apiary
@@ -230,7 +230,7 @@ export function BzzBzzCard({ alert, onConfirm, isPending = false }: BzzBzzCardPr
             Stropire la {alert.distance_km.toFixed(1)} km de stupină
           </p>
           <p className="text-[13px] text-ink-soft mt-0.5">
-            <span className="font-semibold text-ink">{alert.farmer_name_masked}</span>
+            <span className="font-semibold text-ink">Un fermier</span>
             {' · '}{alert.apiary_name}
           </p>
         </div>
@@ -315,7 +315,7 @@ export function BzzBzzCard({ alert, onConfirm, isPending = false }: BzzBzzCardPr
         )}
       </div>
 
-      {/* Ledger footer */}
+      {/* Ledger footer
       <div className="px-[14px] pb-[14px] border-t border-hair-soft flex items-center justify-between gap-2 pt-3">
         <LedgerChip hash={alert.ledger_hash} />
         <button
@@ -325,7 +325,7 @@ export function BzzBzzCard({ alert, onConfirm, isPending = false }: BzzBzzCardPr
         >
           Verifică <ChevronRight size={11} />
         </button>
-      </div>
+      </div> */}
     </motion.div>
   )
 }

@@ -2,19 +2,23 @@
 @import "leaflet/dist/leaflet.css";
 
 @theme {
-  --color-purple: #40288C;
-  --color-purple-soft: #85489D;
-  --color-honey: #EEA727;
-  --color-pollen: #FFEF5F;
-  --color-safe: #16A34A;
-  --color-alert: #DC2626;
-  --color-ink: #1B0F2E;
-  --color-ink-soft: #4A3B66;
-  --color-ink-muted: #7A6F90;
-  --color-cream: #FFFBEB;
-  --color-hair: rgba(77, 43, 140, 0.10);
+  --color-purple: #40288c;
+  --color-purple-soft: #85489d;
+  --color-honey: #eea727;
+  --color-honey-deep: #b45309;
+  --color-pollen: #ffef5f;
+  --color-safe: #16a34a;
+  --color-safe-deep: #15803d;
+  --color-alert: #dc2626;
+  --color-ink: #1b0f2e;
+  --color-ink-soft: #4a3b66;
+  --color-ink-muted: #7a6f90;
+  --color-cream: #fffbeb;
+  --color-hair: rgba(77, 43, 140, 0.1);
   --color-hair-soft: rgba(77, 43, 140, 0.06);
-  --font-sans: Inter, "Inter Placeholder", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-sans:
+    Inter, "Inter Placeholder", -apple-system, BlinkMacSystemFont, system-ui,
+    sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --radius-card: 16px;
   --radius-chip: 8px;
@@ -28,8 +32,30 @@
 body {
   font-family: var(--font-sans);
   color: var(--color-ink);
-  background: var(--color-cream);
+  background-color: #ffffff;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Hex SVG wallpaper as a fixed, low-opacity layer behind everything.
+   Using a pseudo-element with z-index: -1 so we can dial opacity without
+   bleeding into transparent UI elements (cards with bg-purple/10 etc.). */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url("/hex-bg.svg");
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.18;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Solid cream surface utility — for cards/notes that explicitly need to
+   hide the wallpaper behind them. */
+.bg-cream-flat {
+  background-color: var(--color-cream);
 }
 
 /* Focus ring */
@@ -40,72 +66,140 @@ body {
 }
 
 /* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(77,43,140,0.2); border-radius: 3px; }
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(77, 43, 140, 0.2);
+  border-radius: 3px;
+}
 
 /* Honeycomb background pattern */
 .honeycomb-bg {
-  background-image: linear-gradient(135deg, var(--color-purple) 0%, var(--color-purple-soft) 100%);
+  background-image: linear-gradient(
+    135deg,
+    var(--color-purple) 0%,
+    var(--color-purple-soft) 100%
+  );
 }
 
 /* Spinner animation - bee fly path */
 @keyframes bee-fly {
-  0% { offset-distance: 0%; }
-  100% { offset-distance: 100%; }
+  0% {
+    offset-distance: 0%;
+  }
+  100% {
+    offset-distance: 100%;
+  }
 }
 @keyframes bee-flutter {
-  0%, 100% { transform: scaleY(1); }
-  50% { transform: scaleY(0.5); }
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.5);
+  }
 }
 @keyframes bee-pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 /* Cascade chip pulse */
 @keyframes chip-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(133, 64, 157, 0.3); }
-  50% { box-shadow: 0 0 0 4px rgba(133, 64, 157, 0.1); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(133, 64, 157, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(133, 64, 157, 0.1);
+  }
 }
 
 /* Bzz card animations */
 @keyframes bzz-in {
-  0% { opacity: 0; transform: scale(0.95); }
-  100% { opacity: 1; transform: scale(1); }
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 @keyframes bzz-pulse {
-  0%, 100% { box-shadow: 0 8px 24px rgba(238,167,39,0), 0 0 0 0 rgba(238,167,39,0); }
-  50% { box-shadow: 0 8px 28px rgba(238,167,39,0.18), 0 0 0 4px rgba(238,167,39,0.18); }
+  0%,
+  100% {
+    box-shadow:
+      0 8px 24px rgba(238, 167, 39, 0),
+      0 0 0 0 rgba(238, 167, 39, 0);
+  }
+  50% {
+    box-shadow:
+      0 8px 28px rgba(238, 167, 39, 0.18),
+      0 0 0 4px rgba(238, 167, 39, 0.18);
+  }
 }
 
 /* Stagger animation for cascade rows */
 @keyframes casc-in {
-  0% { opacity: 0; transform: translateY(6px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Cascade waiting dot pulse */
 @keyframes casc-dot {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 /* Button loading spinner */
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Bzz card border flash: pollen → honey */
 @keyframes bzz-flash {
-  0%   { background: #FFEF5F; }
-  100% { background: #EEA727; }
+  0% {
+    background: #ffef5f;
+  }
+  100% {
+    background: #eea727;
+  }
 }
 
 /* Bee wing flap for alert bubble icon */
 @keyframes bzz-wing {
-  0%, 100% { transform: rotate(-8deg); }
-  50%       { transform: rotate(14deg); }
+  0%,
+  100% {
+    transform: rotate(-8deg);
+  }
+  50% {
+    transform: rotate(14deg);
+  }
 }
 .bzz-wing {
   animation: bzz-wing 0.16s ease-in-out 3;
@@ -113,8 +207,13 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bzz-wing { animation: none; }
-  * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+  .bzz-wing {
+    animation: none;
+  }
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
 
 /* Leaflet overrides */

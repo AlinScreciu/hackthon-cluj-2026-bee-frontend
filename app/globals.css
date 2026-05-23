@@ -1,0 +1,125 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+@theme {
+  --color-purple: #40288C;
+  --color-purple-soft: #85489D;
+  --color-honey: #EEA727;
+  --color-pollen: #FFEF5F;
+  --color-safe: #16A34A;
+  --color-alert: #DC2626;
+  --color-ink: #1B0F2E;
+  --color-ink-soft: #4A3B66;
+  --color-ink-muted: #7A6F90;
+  --color-cream: #FFFBEB;
+  --color-hair: rgba(77, 43, 140, 0.10);
+  --color-hair-soft: rgba(77, 43, 140, 0.06);
+  --font-sans: Inter, "Inter Placeholder", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius-card: 16px;
+  --radius-chip: 8px;
+}
+
+/* Base styles */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: var(--color-cream);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid var(--color-purple);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(77,43,140,0.2); border-radius: 3px; }
+
+/* Honeycomb background pattern */
+.honeycomb-bg {
+  background-color: var(--color-purple);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100'%3E%3Cpath d='M28 66L0 50V18L28 2l28 16v32L28 66zm0 0l28 16v18L28 100 0 84V66l28-16zm28-62L28 18 0 4l28-16 28 16z' fill='none' stroke='rgba(255,255,255,0.08)' stroke-width='1'/%3E%3C/svg%3E");
+}
+
+/* Spinner animation - bee fly path */
+@keyframes bee-fly {
+  0% { offset-distance: 0%; }
+  100% { offset-distance: 100%; }
+}
+@keyframes bee-flutter {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.5); }
+}
+@keyframes bee-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* Cascade chip pulse */
+@keyframes chip-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(133, 64, 157, 0.3); }
+  50% { box-shadow: 0 0 0 4px rgba(133, 64, 157, 0.1); }
+}
+
+/* Bzz card animations */
+@keyframes bzz-in {
+  0% { opacity: 0; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes bzz-pulse {
+  0%, 100% { box-shadow: 0 8px 24px rgba(238,167,39,0), 0 0 0 0 rgba(238,167,39,0); }
+  50% { box-shadow: 0 8px 28px rgba(238,167,39,0.18), 0 0 0 4px rgba(238,167,39,0.18); }
+}
+
+/* Stagger animation for cascade rows */
+@keyframes casc-in {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Cascade waiting dot pulse */
+@keyframes casc-dot {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+/* Button loading spinner */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Bzz card border flash: pollen → honey */
+@keyframes bzz-flash {
+  0%   { background: #FFEF5F; }
+  100% { background: #EEA727; }
+}
+
+/* Bee wing flap for alert bubble icon */
+@keyframes bzz-wing {
+  0%, 100% { transform: rotate(-8deg); }
+  50%       { transform: rotate(14deg); }
+}
+.bzz-wing {
+  animation: bzz-wing 0.16s ease-in-out 3;
+  transform-origin: 50% 90%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bzz-wing { animation: none; }
+  * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}
+
+/* Leaflet overrides */
+.leaflet-container {
+  font-family: var(--font-sans);
+  z-index: 0;
+}

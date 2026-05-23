@@ -1,6 +1,6 @@
 'use client'
 import { motion } from 'framer-motion'
-import { CheckCircle, XCircle, Phone, MessageSquare, Bell } from 'lucide-react'
+import { CheckCircle, XCircle, Phone, MessageSquare, Bell, Wind } from 'lucide-react'
 import { ConfettiBurst } from '@/components/feedback/ConfettiBurst'
 import { LedgerChip } from '@/components/feedback/LedgerChip'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
@@ -124,6 +124,11 @@ export function CascadeRow({ dispatch, delay = 0 }: CascadeRowProps) {
             <p className="text-[13px] font-semibold text-ink truncate leading-snug">
               {dispatch.beekeeper_initials}
               <span className="text-ink-muted font-normal"> · {dispatch.apiary_name} · {dispatch.distance_km.toFixed(1)} km</span>
+              {dispatch.downwind && (
+                <span className="inline-flex items-center gap-0.5 ml-1 text-[10px] text-honey font-medium" title="Favorizat de vânt">
+                  <Wind size={10} />
+                </span>
+              )}
             </p>
           </div>
 
@@ -158,6 +163,21 @@ export function CascadeRow({ dispatch, delay = 0 }: CascadeRowProps) {
 
         {/* Channel grid */}
         <ChannelGrid channels={dispatch.channels} />
+
+        {/* Unconfirmed warning */}
+        {isUnconfirmed && (
+          <div className="mt-2 px-3 py-2 rounded-lg text-[12px] font-medium"
+            style={{ background: 'rgba(238,167,39,0.10)', color: '#92400E' }}>
+            Apicultorul nu a confirmat. Sună-l direct: <span className="font-bold">07•• ••• •••</span>
+          </div>
+        )}
+
+        {/* Failed error bar */}
+        {isFailed && (
+          <div className="mt-2 px-3 py-2 rounded-lg bg-alert/8 text-[12px] font-medium text-alert">
+            Eroare tehnică. Cascada nu a reușit.
+          </div>
+        )}
 
         {/* Ledger */}
         <div className="mt-2.5">

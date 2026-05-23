@@ -52,7 +52,7 @@ export function RaportStropireForm() {
 
   const lastParcelId = typeof window !== 'undefined' ? localStorage.getItem('ra:last_parcel_id') : null
 
-  const { register, handleSubmit, control, watch, setValue, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, control, watch, setValue, formState: { errors, isValid } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       parcel_id: lastParcelId ?? '',
@@ -125,6 +125,7 @@ export function RaportStropireForm() {
           {...register('parcel_id')}
           className={fieldCls}
           aria-invalid={!!errors.parcel_id}
+          aria-describedby={errors.parcel_id ? 'err-parcel' : undefined}
         >
           <option value="">Selectează parcela...</option>
           {parcels.map(p => (
@@ -136,7 +137,7 @@ export function RaportStropireForm() {
             {selectedParcel.surface_ha} ha · {selectedParcel.cadastral_number}
           </p>
         )}
-        {errors.parcel_id && <p className={errorCls}>{errors.parcel_id.message}</p>}
+        {errors.parcel_id && <p id="err-parcel" className={errorCls}>{errors.parcel_id.message}</p>}
       </div>
 
       {/* Surface + Crop side by side */}
@@ -151,8 +152,10 @@ export function RaportStropireForm() {
             placeholder="4.2"
             {...register('surface_ha', { valueAsNumber: true })}
             className={fieldCls}
+            aria-invalid={!!errors.surface_ha}
+            aria-describedby={errors.surface_ha ? 'err-surface' : undefined}
           />
-          {errors.surface_ha && <p className={errorCls}>{errors.surface_ha.message}</p>}
+          {errors.surface_ha && <p id="err-surface" className={errorCls}>{errors.surface_ha.message}</p>}
         </div>
         <div>
           <label htmlFor="crop" className={labelCls}>Cultură</label>
@@ -162,8 +165,10 @@ export function RaportStropireForm() {
             placeholder="rapiță"
             {...register('crop')}
             className={fieldCls}
+            aria-invalid={!!errors.crop}
+            aria-describedby={errors.crop ? 'err-crop' : undefined}
           />
-          {errors.crop && <p className={errorCls}>{errors.crop.message}</p>}
+          {errors.crop && <p id="err-crop" className={errorCls}>{errors.crop.message}</p>}
         </div>
       </div>
 
@@ -183,13 +188,15 @@ export function RaportStropireForm() {
           name="substance"
           control={control}
           render={({ field }) => (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Selectează substanța">
               {substances.map(s => {
                 const isSelected = field.value === s.label
                 return (
                   <button
                     key={s.label}
                     type="button"
+                    role="radio"
+                    aria-checked={isSelected}
                     onClick={() => field.onChange(s.label)}
                     className="px-3 py-2 rounded-[10px] text-[13px] font-semibold transition-all active:scale-[0.97]"
                     style={isSelected ? {
@@ -215,8 +222,8 @@ export function RaportStropireForm() {
             className="mt-3 rounded-xl px-3 py-2 text-[13px] font-medium"
             style={
               selectedToxicity === 'T+' ? { background: 'rgba(220,38,38,0.08)', color: '#B91C1C' } :
-              selectedToxicity === 'T'  ? { background: 'rgba(238,167,39,0.10)', color: '#92400E' } :
-              { background: 'rgba(22,163,74,0.08)', color: '#166534' }
+                selectedToxicity === 'T' ? { background: 'rgba(238,167,39,0.10)', color: '#92400E' } :
+                  { background: 'rgba(22,163,74,0.08)', color: '#166534' }
             }
           >
             Raza de risc: <strong>{RISK_RADIUS[selectedToxicity]}</strong>
@@ -224,7 +231,7 @@ export function RaportStropireForm() {
           </div>
         )}
 
-        {errors.substance && <p className={errorCls}>{errors.substance.message}</p>}
+        {errors.substance && <p id="err-substance" className={errorCls} role="alert">{errors.substance.message}</p>}
       </div>
 
       {/* Date + time side by side */}
@@ -236,11 +243,13 @@ export function RaportStropireForm() {
             type="datetime-local"
             {...register('scheduled_at')}
             className={fieldCls}
+            aria-invalid={!!errors.scheduled_at}
+            aria-describedby={errors.scheduled_at ? 'err-scheduled' : undefined}
           />
-          {errors.scheduled_at && <p className={errorCls}>{errors.scheduled_at.message}</p>}
+          {errors.scheduled_at && <p id="err-scheduled" className={errorCls}>{errors.scheduled_at.message}</p>}
         </div>
         <div>
-          <label htmlFor="duration_hours" className={labelCls}>Ora</label>
+          <label htmlFor="duration_hours" className={labelCls}>Durată (ore)</label>
           <input
             id="duration_hours"
             type="number"
@@ -249,8 +258,10 @@ export function RaportStropireForm() {
             max="24"
             {...register('duration_hours', { valueAsNumber: true })}
             className={fieldCls}
+            aria-invalid={!!errors.duration_hours}
+            aria-describedby={errors.duration_hours ? 'err-duration' : undefined}
           />
-          {errors.duration_hours && <p className={errorCls}>{errors.duration_hours.message}</p>}
+          {errors.duration_hours && <p id="err-duration" className={errorCls}>{errors.duration_hours.message}</p>}
         </div>
       </div>
 
@@ -263,6 +274,7 @@ export function RaportStropireForm() {
           placeholder="ex: vânt slab dimineața, drum acces din nord"
           {...register('notes')}
           className="w-full px-4 py-3 rounded-xl border border-hair bg-white text-ink text-[14px] focus:outline-none focus:border-purple resize-none transition-colors"
+          aria-invalid={!!errors.notes}
         />
       </div>
 
@@ -275,8 +287,8 @@ export function RaportStropireForm() {
       {/* Sticky bottom CTA */}
       <div className="fixed bottom-0 left-0 right-0 z-20 pb-[env(safe-area-inset-bottom)]">
         <div className="max-w-lg mx-auto px-4 pb-4">
-          {selectedToxicity ? (
-            /* Enhanced CTA with affected count */
+          {isValid && selectedToxicity ? (
+            /* Enhanced CTA — only shown when form is fully valid */
             <div
               className="rounded-[16px] px-4 pt-3 pb-4"
               style={{ background: '#1B0F2E' }}
@@ -312,8 +324,8 @@ export function RaportStropireForm() {
               </button>
             </div>
           ) : (
-            /* Simple CTA when no substance selected */
-            <div className="bg-white/95 backdrop-blur-md border-t border-hair pt-3 pb-1 -mx-4 px-4">
+            /* Simple CTA when form is incomplete */
+            <div className="backdrop-blur-md pt-3 pb-1">
               <button
                 type="submit"
                 disabled={submitting || !selectedParcelId}

@@ -9,9 +9,9 @@ import { BeeLogo } from '@/components/ui/BeeLogo'
 import type { User, Role } from '@/lib/api/types'
 
 const ROLE_PILL: Record<Role, { bg: string; fg: string; label: string }> = {
-  apicultor: { bg: '#FFEF5F', fg: '#1B0F2E', label: 'Apicultor' },
-  fermier:   { bg: '#40288C', fg: '#FFFFFF', label: 'Fermier' },
-  inspector: { bg: '#85489D', fg: '#FFFFFF', label: 'ANF' },
+  apicultor: { bg: '#40288C', fg: '#FFFFFF', label: 'Apicultor' },
+  fermier: { bg: '#EEA727', fg: '#1a1a1a', label: 'Fermier' },
+  inspector: { bg: '#DC2626', fg: '#FFFFFF', label: 'ANF' },
 }
 
 const DESKTOP_TABS: Record<string, { href: string; label: string }[]> = {
@@ -58,9 +58,8 @@ export function TopBar({ user }: { user: User }) {
         <div className="flex items-center gap-2 shrink-0">
           <BeeLogo size={28} aria-hidden />
           <div>
-            <p className="text-sm font-bold text-ink leading-none tracking-[-0.01em]">Beelive</p>
+            <p className="text-md font-bold text-ink leading-none tracking-[-0.01em]">Beelive</p>
             <p className="text-[10px] text-ink-muted leading-none mt-0.5 tracking-[0.02em] uppercase font-medium">
-              Radarul Albinelor
             </p>
           </div>
           {/* Role pill */}
@@ -81,11 +80,10 @@ export function TopBar({ user }: { user: User }) {
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-purple/10 text-purple'
-                    : 'text-ink-muted hover:bg-hair-soft hover:text-ink'
-                }`}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${isActive
+                  ? 'bg-purple/10 text-purple'
+                  : 'text-ink-muted hover:bg-hair-soft hover:text-ink'
+                  }`}
                 aria-current={isActive ? 'page' : undefined}
               >
                 {tab.label}
@@ -99,19 +97,23 @@ export function TopBar({ user }: { user: User }) {
           <span className="hidden sm:block text-sm font-medium text-ink-soft mr-2">{user.name}</span>
 
           {/* Bell with unread badge */}
-          <button
-            onClick={() => user.role === 'apicultor' && router.push('/apicultor/alerte')}
-            className="relative p-2 rounded-lg hover:bg-hair-soft transition-colors"
-            aria-label={unreadCount > 0 ? `${unreadCount} alerte active` : 'Notificări'}
-          >
-            <Bell size={18} className="text-ink-muted" />
-            {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 min-w-[15px] h-[15px] px-[3px] rounded-full bg-alert text-white text-[9px] font-bold flex items-center justify-center leading-none">
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
-            )}
-          </button>
-
+          {user.role !== 'fermier' && user.role !== 'inspector' && (
+            <button
+              onClick={() => {
+                if (user.role === 'apicultor') router.push('/apicultor/alerte')
+                else router.push('/setari')
+              }}
+              className="relative p-2 rounded-lg hover:bg-hair-soft transition-colors"
+              aria-label={unreadCount > 0 ? `${unreadCount} alerte active` : 'Notificări'}
+            >
+              <Bell size={18} className="text-ink-muted" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 min-w-[15px] h-[15px] px-[3px] rounded-full bg-alert text-white text-[9px] font-bold flex items-center justify-center leading-none">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+          )}
           <button
             onClick={() => router.push('/setari')}
             className="p-2 rounded-lg hover:bg-hair-soft transition-colors"

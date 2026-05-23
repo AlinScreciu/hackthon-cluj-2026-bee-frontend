@@ -51,6 +51,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-[22px] font-bold text-ink tracking-[-0.02em]">Beelive</h1>
           <p className="text-ink-muted mt-1 text-[13.5px]">{t.login.subtitle}</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-purple mt-2 mb-1">ROeID · Pasul 1</p>
         </div>
 
         {/* Card */}
@@ -108,10 +109,12 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-[11px] text-ink-muted mt-5 leading-relaxed">
-          Date de test: CNP <code className="font-mono bg-hair-soft px-1 rounded">1900101400001</code> / parolă <code className="font-mono bg-hair-soft px-1 rounded">test1234</code><br />
-          Roluri: <code className="font-mono">...400001</code>=apicultor · <code className="font-mono">...400002</code>=fermier · <code className="font-mono">...400003</code>=inspector
-        </p>
+        {process.env.NODE_ENV !== 'production' && (
+          <p className="text-center text-[11px] text-ink-muted mt-5 leading-relaxed">
+            Date de test: CNP <code className="font-mono bg-hair-soft px-1 rounded">1900101400001</code> / parolă <code className="font-mono bg-hair-soft px-1 rounded">test1234</code><br />
+            Roluri: <code className="font-mono">...400001</code>=apicultor · <code className="font-mono">...400002</code>=fermier · <code className="font-mono">...400003</code>=inspector
+          </p>
+        )}
       </div>
     </div>
   )

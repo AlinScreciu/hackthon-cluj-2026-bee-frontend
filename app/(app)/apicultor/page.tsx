@@ -71,8 +71,11 @@ export default function ApicultorPage() {
 
   const firstName = user?.full_name?.split(' ')[0] ?? user?.name ?? 'Apicultor'
 
+  const hour = new Date().getHours()
+  const timeGreeting = hour < 12 ? 'dimineața' : hour < 18 ? 'ziua' : 'seara'
+
   return (
-    <div className="px-4 py-5 space-y-7">
+    <div className="px-4 md:px-6 lg:px-8 py-5 space-y-7">
 
       {/* ── Hero ── */}
       {hasAlert ? (
@@ -105,7 +108,7 @@ export default function ApicultorPage() {
           }}
         >
           <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-safe mb-1">
-            Bună dimineața, {firstName}
+            Bună {timeGreeting}, {firstName}
           </p>
           <h1 className="text-[20px] font-bold text-ink tracking-[-0.02em] leading-snug">
             Stupinele tale sunt în siguranță
@@ -196,10 +199,10 @@ export default function ApicultorPage() {
       <section>
         <SectionHeader label="Activitate recentă" href="/apicultor/alerte" linkLabel="Toate alertele" />
         {activeAlerts.length === 0 ? (
-          <div className="bg-white rounded-[14px] p-4 border border-hair-soft text-center">
-            <p className="text-[13px] text-ink-muted">Nicio activitate recentă.</p>
-            <p className="text-[11.5px] text-ink-muted mt-1">Când un fermier anunță o stropire, apare aici.</p>
-          </div>
+          <EmptyState
+            message="Zero alerte. Zumzet liniștit."
+            subtitle="Când un fermier anunță o stropire, te alertăm imediat."
+          />
         ) : (
           <div className="space-y-2">
             {activeAlerts.slice(0, 3).map(alert => (

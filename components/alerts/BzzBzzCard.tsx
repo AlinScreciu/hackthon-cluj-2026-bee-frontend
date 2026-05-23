@@ -1,13 +1,14 @@
 'use client'
 import { motion } from 'framer-motion'
 import { useReducedMotion } from '@/lib/hooks/useReducedMotion'
-import { MapPin, Clock, Wind, ChevronRight, CheckCircle, Bell, Phone, MessageSquare, Shield, ArrowUp } from 'lucide-react'
+import { MapPin, Clock, Wind, ChevronRight, CheckCircle, Bell, Phone, MessageSquare, Shield, ArrowUp, AlertTriangle } from 'lucide-react'
 import { BeeLogo } from '@/components/ui/BeeLogo'
 import { Chip } from '@/components/ui/Chip'
 import { Button } from '@/components/ui/Button'
 import { ToxBadge } from '@/components/ui/Badge'
 import { LedgerChip } from '@/components/feedback/LedgerChip'
 import { formatDateTime } from '@/lib/format'
+import { useApiaries } from '@/lib/api/queries'
 import type { AlertView, ChannelStates, FinalStatus } from '@/lib/api/types'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -23,7 +24,7 @@ function channelStateLabel(channel: 'push' | 'call' | 'sms', state: string): str
     pending: 'Așteptare', sent: 'Trimis', delivered: 'Livrat', opened: 'Deschis',
     // call
     skipped: 'Omis', queued: 'În coadă', ringing: 'Sună', answered: 'Răspuns',
-    confirmed: 'Confirmat', no_input: 'Fără răspuns', no_answer: 'Neridcat',
+    confirmed: 'Confirmat', no_input: 'Fără răspuns', no_answer: 'Neridicat',
     busy: 'Ocupat', failed: 'Eșuat', hung_up: 'Închis',
     // sms
     no_reply: 'Fără răspuns',
@@ -32,81 +33,91 @@ function channelStateLabel(channel: 'push' | 'call' | 'sms', state: string): str
 }
 
 // ── RiskMapPreview ────────────────────────────────────────────────────────────
+// 3×3 OSM tile grid. Centred on the apiary; spray shown as secondary marker.
 
-function RiskMapPreview({ windDeg }: { windDeg: number }) {
-  const cx = 110; const cy = 65; const r = 38
-  const rad = (windDeg - 90) * (Math.PI / 180)
-  const coneAngle = 35 * (Math.PI / 180)
-  const len = r * 1.55
+function latLngToFloat(lat: number, lng: number, z: number) {
+  const scale = Math.pow(2, z)
+  const xF = (lng + 180) / 360 * scale
+  const latRad = lat * Math.PI / 180
+  const yF = (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * scale
+  return { xF, yF }
+}
 
-  const x1 = cx + Math.cos(rad - coneAngle) * len
-  const y1 = cy + Math.sin(rad - coneAngle) * len
-  const x2 = cx + Math.cos(rad + coneAngle) * len
-  const y2 = cy + Math.sin(rad + coneAngle) * len
+interface RiskMapPreviewProps {
+  apiaryLat: number; apiaryLng: number
+  sprayLat: number; sprayLng: number
+}
 
-  const arrowTipX = cx + Math.cos(rad) * (r * 0.9)
-  const arrowTipY = cy + Math.sin(rad) * (r * 0.9)
+function RiskMapPreview({ apiaryLat, apiaryLng, sprayLat, sprayLng }: RiskMapPreviewProps) {
+  const zoom = 15
+
+  // Tile grid centred on the apiary
+  const aF = latLngToFloat(apiaryLat, apiaryLng, zoom)
+  const aTx = Math.floor(aF.xF); const aTy = Math.floor(aF.yF)
+  const aOx = (aF.xF % 1) * 256; const aOy = (aF.yF % 1) * 256
+
+  // Spray position in pixels relative to the apiary centre
+  const sF = latLngToFloat(sprayLat, sprayLng, zoom)
+  const sprayOffX = Math.round((sF.xF - aF.xF) * 256)
+  const sprayOffY = Math.round((sF.yF - aF.yF) * 256)
+
+  const tiles: { x: number; y: number; left: number; top: number }[] = []
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      tiles.push({ x: aTx + dx, y: aTy + dy, left: (dx + 1) * 256, top: (dy + 1) * 256 })
+    }
+  }
 
   return (
-    <div className="w-full rounded-[10px] overflow-hidden bg-[#f0f4ee]" style={{ height: 110 }}>
-      <svg width="100%" height="110" viewBox="0 0 220 110" preserveAspectRatio="xMidYMid slice">
-        {/* Background */}
-        <rect width="220" height="110" fill="#e8f0e5" />
+    <div className="w-full rounded-[10px] overflow-hidden bg-[#aad3df] relative" style={{ height: 110, pointerEvents: 'none', userSelect: 'none' }}>
+      {/* Tile grid — entire container is pointer-events:none so scroll passes through */}
+      <div style={{
+        position: 'absolute', width: 768, height: 768,
+        left: `calc(50% - ${Math.round(256 + aOx)}px)`,
+        top: `calc(50% - ${Math.round(256 + aOy)}px)`,
+      }}>
+        {tiles.map(t => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={`${t.x},${t.y}`}
+            src={`https://tile.openstreetmap.org/${zoom}/${t.x}/${t.y}.png`}
+            alt=""
+            width={256}
+            height={256}
+            style={{ position: 'absolute', left: t.left, top: t.top }}
+          />
+        ))}
+      </div>
 
-        {/* Road */}
-        <path d="M0 72 Q60 68 110 65 Q160 62 220 58" stroke="#c8d5c4" strokeWidth="6" fill="none" strokeLinecap="round" />
+      {/* Apiary marker — centred (yellow hive icon) */}
+      <div aria-hidden style={{
+        position: 'absolute', left: '50%', top: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: 20, height: 20, borderRadius: '50%',
+        background: '#EEA727', border: '3px solid white',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+      }} />
 
-        {/* Parcel polygon */}
-        <polygon
-          points="55,30 100,20 140,28 145,60 100,70 55,58"
-          fill="#EEA727"
-          fillOpacity="0.22"
-          stroke="#EEA727"
-          strokeWidth="1.5"
-          strokeDasharray="4,3"
-        />
+      {/* Spray marker — offset from apiary */}
+      <div aria-hidden style={{
+        position: 'absolute',
+        left: `calc(50% + ${sprayOffX}px)`,
+        top: `calc(50% + ${sprayOffY}px)`,
+        transform: 'translate(-50%, -50%)',
+        width: 14, height: 14, borderRadius: '50%',
+        background: '#DC2626', border: '2.5px solid white',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+      }} />
 
-        {/* Spray cone */}
-        <path
-          d={`M${cx},${cy} L${x1},${y1} A${len},${len} 0 0,1 ${x2},${y2} Z`}
-          fill="#DC2626"
-          fillOpacity="0.12"
-          stroke="#DC2626"
-          strokeWidth="1"
-          strokeOpacity="0.4"
-        />
-
-        {/* Wind direction arrow */}
-        <line
-          x1={cx} y1={cy}
-          x2={arrowTipX} y2={arrowTipY}
-          stroke="#40288C"
-          strokeWidth="1.5"
-          strokeDasharray="3,2"
-          strokeLinecap="round"
-        />
-        {/* Arrow head */}
-        <polygon
-          points={`0,-4 3,4 -3,4`}
-          fill="#40288C"
-          fillOpacity="0.7"
-          transform={`translate(${arrowTipX},${arrowTipY}) rotate(${windDeg})`}
-        />
-
-        {/* Parcel center dot (spray origin) */}
-        <circle cx={cx} cy={cy} r="5" fill="#DC2626" fillOpacity="0.8" />
-        <circle cx={cx} cy={cy} r="2.5" fill="white" />
-
-        {/* Apiary circle */}
-        <circle cx="168" cy="42" r="9" fill="#FFEF5F" stroke="#40288C" strokeWidth="1.5" />
-        <circle cx="168" cy="42" r="4" fill="#40288C" />
-        <circle cx="168" cy="42" r="1.5" fill="#FFEF5F" />
-
-        {/* Compass N label */}
-        <text x="205" y="14" fill="#40288C" fontSize="9" fontWeight="700" textAnchor="middle" fontFamily="system-ui">N</text>
-        <line x1="205" y1="17" x2="205" y2="26" stroke="#40288C" strokeWidth="1" />
-        <polygon points="205,8 202,17 208,17" fill="#40288C" />
-      </svg>
+      {/* Label chip */}
+      <div style={{
+        position: 'absolute', bottom: 6, right: 8,
+        background: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(4px)',
+        borderRadius: 6, padding: '2px 6px',
+        fontSize: 10, fontWeight: 700, color: '#40288C',
+      }}>
+        🐝 stupină · 🔴 stropire
+      </div>
     </div>
   )
 }
@@ -133,17 +144,17 @@ function textColor(state: string, isWinner: boolean): string {
 function BzzChannelRows({ channels, finalStatus }: { channels: ChannelStates; finalStatus: FinalStatus }) {
   const winnerChannel =
     finalStatus === 'confirmed_call' ? 'call' :
-    finalStatus === 'confirmed_sms' ? 'sms' : null
+      finalStatus === 'confirmed_sms' ? 'sms' : null
 
   const items = [
-    { Icon: Bell,          key: 'push', label: 'Push', state: channels.push.state, isWinner: false },
-    { Icon: Phone,         key: 'call', label: 'Apel', state: channels.call.state, isWinner: winnerChannel === 'call' },
-    { Icon: MessageSquare, key: 'sms',  label: 'SMS',  state: channels.sms.state,  isWinner: winnerChannel === 'sms' },
+    { Icon: Bell, key: 'push', label: 'Push', state: channels.push.state, isWinner: false, at: channels.push.at },
+    { Icon: Phone, key: 'call', label: 'Apel', state: channels.call.state, isWinner: winnerChannel === 'call', at: channels.call.at },
+    { Icon: MessageSquare, key: 'sms', label: 'SMS', state: channels.sms.state, isWinner: winnerChannel === 'sms', at: channels.sms.at },
   ] as const
 
   return (
     <div className="space-y-1.5">
-      {items.map(({ Icon, key, label, state, isWinner }) => {
+      {items.map(({ Icon, key, label, state, isWinner, at }) => {
         if (state === 'skipped') return null
         const dot = dotColor(state, isWinner)
         const txt = textColor(state, isWinner)
@@ -153,7 +164,7 @@ function BzzChannelRows({ channels, finalStatus }: { channels: ChannelStates; fi
             <Icon size={11} style={{ color: dot }} className="shrink-0" />
             <span className="text-[12.5px] text-ink-muted font-medium">{label}</span>
             <span className="text-ink-muted text-[12.5px]">·</span>
-            <span className={`text-[12.5px] ${txt}`}>{channelStateLabel(key, state)}</span>
+            <span className={`text-[12.5px] ${txt}`}>{channelStateLabel(key, state)}{at && <span className="text-ink-muted"> · {new Date(at).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}</span>}</span>
           </div>
         )
       })}
@@ -171,13 +182,15 @@ interface BzzBzzCardProps {
 
 export function BzzBzzCard({ alert, onConfirm, isPending = false }: BzzBzzCardProps) {
   const reduced = useReducedMotion()
+  const { data: apiariesData } = useApiaries()
+  const apiary = apiariesData?.items.find(a => a.id === alert.apiary_id)
   const confirmed = alert.final_status?.startsWith('confirmed')
   const accentColor = confirmed ? '#16A34A' : '#EEA727'
 
   const finalLabel =
     alert.final_status === 'confirmed_call' ? 'apel telefonic' :
-    alert.final_status === 'confirmed_sms' ? 'SMS' :
-    alert.final_status === 'confirmed_app' ? 'aplicație' : null
+      alert.final_status === 'confirmed_sms' ? 'SMS' :
+        alert.final_status === 'confirmed_app' ? 'aplicație' : null
 
   return (
     <motion.div
@@ -206,19 +219,12 @@ export function BzzBzzCard({ alert, onConfirm, isPending = false }: BzzBzzCardPr
 
       {/* Header */}
       <div className="flex items-start gap-[10px] pt-[14px] pb-[10px] pr-[14px] pl-[18px]">
-        {/* Bee bubble */}
-        <div
-          className={`w-[52px] h-9 rounded-[10px] bg-pollen flex items-center justify-center shrink-0 mt-0.5 ${!reduced && !confirmed ? 'bzz-wing' : ''}`}
-        >
-          <BeeLogo size={26} aria-hidden />
-        </div>
-
         <div className="flex-1 min-w-0">
           <p
             className="text-[11.5px] font-bold uppercase tracking-[0.04em]"
             style={{ color: confirmed ? '#16A34A' : '#EEA727' }}
           >
-            {confirmed ? 'Alertă confirmată' : 'Bzz Bzz · Alertă urgentă'}
+            {confirmed ? 'Alertă confirmată' : 'BZZ BZZ · ALERTĂ URGENTĂ'}
           </p>
           <p className="text-[17px] font-bold text-purple tracking-[-0.015em] mt-0.5 leading-tight">
             Stropire la {alert.distance_km.toFixed(1)} km de stupină
@@ -238,7 +244,12 @@ export function BzzBzzCard({ alert, onConfirm, isPending = false }: BzzBzzCardPr
 
       {/* Risk map */}
       <div className="px-[14px]">
-        <RiskMapPreview windDeg={alert.wind_direction_deg} />
+        <RiskMapPreview
+          apiaryLat={apiary?.lat ?? alert.spray_lat}
+          apiaryLng={apiary?.lng ?? alert.spray_lng}
+          sprayLat={alert.spray_lat}
+          sprayLng={alert.spray_lng}
+        />
       </div>
 
       {/* Stat chips */}
@@ -268,7 +279,12 @@ export function BzzBzzCard({ alert, onConfirm, isPending = false }: BzzBzzCardPr
 
       {/* CTA */}
       <div className="p-[14px] flex flex-col gap-2">
-        {!confirmed && !alert.in_app_action ? (
+        {alert.final_status === 'failed' ? (
+          <div className="flex items-center gap-2 p-3 rounded-[10px] bg-alert/10 text-alert text-[13px] font-medium">
+            <AlertTriangle size={16} />
+            <span>Eroare tehnică. Contactează apicultorul direct.</span>
+          </div>
+        ) : !confirmed && !alert.in_app_action ? (
           <>
             <Button
               variant="primary"
@@ -302,7 +318,11 @@ export function BzzBzzCard({ alert, onConfirm, isPending = false }: BzzBzzCardPr
       {/* Ledger footer */}
       <div className="px-[14px] pb-[14px] border-t border-hair-soft flex items-center justify-between gap-2 pt-3">
         <LedgerChip hash={alert.ledger_hash} />
-        <button className="text-[11.5px] font-semibold text-purple-soft flex items-center gap-1 shrink-0">
+        <button
+          aria-label="Verifică integritatea înregistrării"
+          className="text-[11.5px] font-semibold text-purple-soft flex items-center gap-1 shrink-0"
+          onClick={() => window.open(`/api/v1/events/${alert.ledger_hash}`, '_blank')}
+        >
           Verifică <ChevronRight size={11} />
         </button>
       </div>

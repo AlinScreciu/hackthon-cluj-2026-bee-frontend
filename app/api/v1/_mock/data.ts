@@ -551,6 +551,26 @@ sprayReports.set('spray-seed-3', {
   created_at_ms: Date.now() - 5 * 3600 * 1000,
 })
 
+// Spray seed 4: scheduled for tomorrow — shows "Următoarea" pill on parcel-2
+sprayReports.set('spray-seed-4', {
+  id: 'spray-seed-4',
+  farmer_id: 'user-fermier-1',
+  parcel_id: 'parcel-2',
+  parcel: { name: 'Parcela Apahida Sud', lat: 46.801, lng: 23.748 },
+  crop: 'Porumb',
+  substance: 'Confidor',
+  toxicity: 'T',
+  surface_ha: 7.2,
+  scheduled_at: new Date(Date.now() + 86400 * 1000).toISOString(),
+  duration_hours: 4,
+  notes: null,
+  status: 'scheduled',
+  affected_apiaries_count: 2,
+  ledger_hash: '',
+  created_at: new Date().toISOString(),
+  created_at_ms: Date.now(),
+})
+
 alertDispatches.set('spray-seed-3', [
   {
     alert_dispatch_id: 'dispatch-seed-3a',

@@ -19,7 +19,7 @@ function TwoFactorScreen() {
     <div style={{ height: '100%', background: RA.white, paddingTop: 56, position: 'relative', overflow: 'hidden' }}>
       <Honeycomb opacity={0.05} color={RA.purple} size={28}/>
       <div style={{ position: 'relative', padding: '40px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18, height: '100%', boxSizing: 'border-box' }}>
-        <Albi size={80}/>
+        <BeeSpinner size="lg"/>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 11.5, fontWeight: 700, color: RA.purpleSoft, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
             ROeID · pasul 2

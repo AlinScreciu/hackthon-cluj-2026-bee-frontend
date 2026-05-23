@@ -7,7 +7,7 @@ import { ToxBadge, StatusBadge } from '@/components/ui/Badge'
 import { LedgerChip } from '@/components/feedback/LedgerChip'
 import { formatDateTime, formatHa } from '@/lib/format'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, CheckCircle, FileText, Mail, Layers } from 'lucide-react'
+import { ChevronLeft, CheckCircle, FileText, Mail, Layers, PartyPopper, Download } from 'lucide-react'
 
 // ── CascadeProgressSteps ───────────────────────────────────────────────────────
 
@@ -77,8 +77,12 @@ export default function RaportDetailPage({ params }: { params: Promise<{ id: str
   const isComplete = cascade?.overall_status === 'complete'
 
   return (
-    <div className="px-4 py-4 space-y-4">
-      <button onClick={() => router.back()} className="flex items-center gap-1 text-purple text-[13px] font-semibold">
+    <div className="px-4 md:px-6 lg:px-8 py-4 space-y-4">
+      <button
+        onClick={() => router.back()}
+        className="flex items-center gap-1 text-purple text-[13px] font-semibold"
+        aria-label="Înapoi la lista de rapoarte"
+      >
         <ChevronLeft size={16} /> Înapoi
       </button>
 
@@ -115,6 +119,26 @@ export default function RaportDetailPage({ params }: { params: Promise<{ id: str
         affectedCount={spray.affected_apiaries_count}
         isComplete={isComplete}
       />
+
+      {/* Success banner when complete */}
+      {isComplete && (
+        <div className="bg-safe/8 border border-safe/20 rounded-2xl p-4 text-center space-y-2">
+          <PartyPopper size={24} className="text-safe mx-auto" />
+          <p className="text-[15px] font-bold text-ink">Gata! Apicultorii știu.</p>
+          <p className="text-[12px] text-ink-muted">
+            Primăria {spray.parcel.name.split(' ').pop()} a primit PDF-ul oficial.
+            {' '}{spray.affected_apiaries_count} apicultori sunt notificați și pot confirma.
+          </p>
+          <a
+            href={`${process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8080/api/v1'}/spray-reports/${id}/primarie-pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-purple text-[13px] font-semibold mt-1 hover:text-purple-soft transition-colors"
+          >
+            <Download size={14} /> Descarcă PDF primărie
+          </a>
+        </div>
+      )}
 
       {/* Cascade dispatch rows */}
       <CascadeStatusList

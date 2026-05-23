@@ -73,7 +73,7 @@ export function CascadeStatusList({ sprayId, initialDispatchCount = 2 }: Cascade
 
       {/* Summary pills */}
       {data && (
-        <div className="flex gap-2 mb-4 flex-wrap">
+        <div className="flex gap-2 mb-4 flex-wrap" role="group" aria-label="Rezumat notificări">
           <span className="bg-safe/10 text-safe px-3 py-1 rounded-full text-[12px] font-bold">
             {data.summary.confirmed} confirmate
           </span>

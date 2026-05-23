@@ -2,7 +2,7 @@
 import { use } from 'react'
 import { useApiary } from '@/lib/api/queries'
 import { Spinner } from '@/components/feedback/Spinner'
-import { StatusBadge, ToxBadge } from '@/components/ui/Badge'
+import { StatusBadge } from '@/components/ui/Badge'
 import { LedgerChip } from '@/components/feedback/LedgerChip'
 import { formatDate } from '@/lib/format'
 import { useRouter } from 'next/navigation'
@@ -19,8 +19,12 @@ export default function ApiaryDetailPage({ params }: { params: Promise<{ id: str
   const { apiary } = data
 
   return (
-    <div className="px-4 py-4">
-      <button onClick={() => router.back()} className="flex items-center gap-1 text-purple text-sm font-medium mb-4">
+    <div className="px-4 md:px-6 lg:px-8 py-4">
+      <button
+        onClick={() => router.back()}
+        className="flex items-center gap-1 text-purple text-sm font-medium mb-4"
+        aria-label="Înapoi la lista de stupine"
+      >
         <ChevronLeft size={18} /> Înapoi
       </button>
 
@@ -36,7 +40,7 @@ export default function ApiaryDetailPage({ params }: { params: Promise<{ id: str
         </div>
 
         <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="bg-hair-soft rounded-xl p-3">
+          <div className="bg-hair-soft rounded-xl p-3" aria-label={`${apiary.hive_count} stupi`}>
             <p className="text-ink-muted">Stupi</p>
             <p className="font-bold text-ink text-lg">{apiary.hive_count}</p>
           </div>
@@ -48,7 +52,7 @@ export default function ApiaryDetailPage({ params }: { params: Promise<{ id: str
             <p className="text-ink-muted">Din data</p>
             <p className="font-semibold text-ink text-sm">{formatDate(apiary.start_date)}</p>
           </div>
-          <div className="bg-hair-soft rounded-xl p-3">
+          <div className="bg-hair-soft rounded-xl p-3" aria-label={`${apiary.current_risk.active_alerts} alerte active`}>
             <p className="text-ink-muted">Alerte active</p>
             <p className="font-bold text-ink text-lg">{apiary.current_risk.active_alerts}</p>
           </div>

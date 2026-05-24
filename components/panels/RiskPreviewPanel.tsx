@@ -33,9 +33,9 @@ const ZONE_LEGEND: { id: string; fill: string; stroke: string; label: string }[]
 
 const SEVERITY_BG: Record<string, { bg: string; fg: string; label: string }> = {
   very_high: { bg: 'rgba(220,38,38,0.10)', fg: '#B91C1C', label: 'Risc foarte ridicat' },
-  high:      { bg: 'rgba(220,38,38,0.08)', fg: '#B91C1C', label: 'Risc ridicat' },
-  medium:    { bg: 'rgba(238,167,39,0.12)', fg: '#92400E', label: 'Risc moderat' },
-  low:       { bg: 'rgba(22,163,74,0.10)', fg: '#166534', label: 'Risc scăzut' },
+  high: { bg: 'rgba(220,38,38,0.08)', fg: '#B91C1C', label: 'Risc ridicat' },
+  medium: { bg: 'rgba(238,167,39,0.12)', fg: '#92400E', label: 'Risc moderat' },
+  low: { bg: 'rgba(22,163,74,0.10)', fg: '#166534', label: 'Risc scăzut' },
 }
 
 export function RiskPreviewPanel({
@@ -112,7 +112,7 @@ export function RiskPreviewPanel({
             </p>
           </div>
           <span className="text-[10.5px] text-ink-muted leading-tight text-right">
-            zonele AI<br />sunt aliniate<br />pe vânt
+            zonele marcate de AI<br />sunt aliniate<br />pe vânt
           </span>
         </div>
       )}

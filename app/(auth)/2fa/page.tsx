@@ -16,8 +16,7 @@ function TwoFAForm() {
   const [digits, setDigits] = useState<string[]>(Array(6).fill(''))
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [method, setMethod] = useState(initialMethod)
-  const [switchingMethod, setSwitchingMethod] = useState(false)
+  const method = initialMethod
   const inputRefs = useRef<(HTMLInputElement | null)[]>(Array(6).fill(null))
   const submitRef = useRef<HTMLButtonElement | null>(null)
 
@@ -87,21 +86,6 @@ function TwoFAForm() {
     }
   }
 
-  async function switchMethod(newMethod: 'sms' | 'email') {
-    if (switchingMethod || newMethod === method) return
-    setSwitchingMethod(true)
-    try {
-      await api.post('/auth/2fa/method', { challenge_id: challengeId, method: newMethod })
-      setMethod(newMethod)
-      setDigits(Array(6).fill(''))
-      setTimeout(() => inputRefs.current[0]?.focus(), 0)
-    } catch {
-      // ignore
-    } finally {
-      setSwitchingMethod(false)
-    }
-  }
-
   const methodLabel = method === 'sms' ? 'SMS' : method === 'email' ? 'Email' : 'notificarea push'
 
   return (
@@ -153,26 +137,6 @@ function TwoFAForm() {
               ))}
             </div>
 
-            {/* Method switch links */}
-            <div className="flex items-center justify-center gap-5">
-              <button
-                type="button"
-                onClick={() => switchMethod('sms')}
-                disabled={switchingMethod || method === 'sms'}
-                className="text-[13px] font-semibold text-purple hover:text-purple-soft transition-colors disabled:opacity-40"
-              >
-                Trimite prin SMS
-              </button>
-              <button
-                type="button"
-                onClick={() => switchMethod('email')}
-                disabled={switchingMethod || method === 'email'}
-                className="text-[13px] font-semibold text-purple hover:text-purple-soft transition-colors disabled:opacity-40"
-              >
-                Trimite prin Email
-              </button>
-            </div>
-
             {error && (
               <p id="twofa-error" role="alert" className="text-sm text-alert font-medium text-center">
                 {error}
@@ -218,10 +182,6 @@ function TwoFAForm() {
           <span className="text-[11px] text-ink-soft font-mono">CNP {dest}</span>
           <span className="text-[10px] font-semibold text-ink-muted uppercase tracking-[0.04em]">sesiune ROeID</span>
         </div>
-
-        <p className="text-center text-[11px] text-ink-muted mt-3">
-          Orice cod din 6 cifre funcționează în modul demo.
-        </p>
       </div>
     </div>
   )

@@ -3,7 +3,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Select from 'react-select'
 import { useParcels, useSubstances } from '@/lib/api/queries'
 import { api } from '@/lib/api/client'
@@ -18,18 +18,37 @@ const schema = z.object({
   dose_kg_ha: z.number({ error: 'Introduceți doza' }).positive('Doza trebuie să fie pozitivă'),
   crop: z.string().min(1, 'Introduceți cultura'),
   substance: z.string().min(1, 'Selectează o substanță'),
-  scheduled_at: z.string().min(1, 'Selectează data'),
+  scheduled_at: z
+    .string()
+    .min(1, 'Selectează data')
+    .refine(v => {
+      const picked = new Date(v)
+      const now = new Date()
+      now.setSeconds(0, 0)
+      return picked.getTime() >= now.getTime()
+    }, 'Data și ora nu pot fi în trecut'),
   duration_hours: z.number({ error: 'Introduceți durata' }).positive().max(24),
   notes: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof schema>
 
+function toLocalInputValue(d: Date) {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 function tomorrow() {
   const d = new Date()
   d.setDate(d.getDate() + 1)
   d.setMinutes(0, 0, 0)
-  return d.toISOString().slice(0, 16)
+  return toLocalInputValue(d)
+}
+
+function nowLocal() {
+  const d = new Date()
+  d.setSeconds(0, 0)
+  return toLocalInputValue(d)
 }
 
 export const RISK_RADIUS: Record<Toxicity, string> = {
@@ -59,8 +78,8 @@ export function RaportStropireForm({ onLiveValues }: RaportStropireFormProps = {
   const router = useRouter()
   const { data: parcelsData } = useParcels()
   const { data: substancesData } = useSubstances()
-  const parcels = parcelsData?.items ?? []
-  const substances = substancesData?.items ?? []
+  const parcels = useMemo(() => parcelsData?.items ?? [], [parcelsData])
+  const substances = useMemo(() => substancesData?.items ?? [], [substancesData])
 
   const [selectedToxicity, setSelectedToxicity] = useState<Toxicity | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -110,6 +129,21 @@ export function RaportStropireForm({ onLiveValues }: RaportStropireFormProps = {
       clearErrors('surface_ha')
     }
   }, [selectedSurfaceHa, parcelMaxHa, setFieldError, clearErrors])
+
+  // Show an inline error the moment scheduled_at is set to a past moment.
+  // Zod's refine in the schema is the final gate that blocks submission.
+  useEffect(() => {
+    if (!selectedScheduledAt) return
+    const picked = new Date(selectedScheduledAt)
+    if (Number.isNaN(picked.getTime())) return
+    const now = new Date()
+    now.setSeconds(0, 0)
+    if (picked.getTime() < now.getTime()) {
+      setFieldError('scheduled_at', { type: 'min', message: 'Data și ora nu pot fi în trecut' })
+    } else {
+      clearErrors('scheduled_at')
+    }
+  }, [selectedScheduledAt, setFieldError, clearErrors])
 
   useEffect(() => {
     const sub = substances.find(s => s.label === selectedSubstance)
@@ -202,8 +236,7 @@ export function RaportStropireForm({ onLiveValues }: RaportStropireFormProps = {
                 aria-describedby={errors.parcel_id ? 'err-parcel' : undefined}
                 classNames={{
                   control: ({ isFocused }) =>
-                    `min-h-12 px-2 rounded-xl bg-white text-[14px] border transition-colors ${
-                      isFocused ? 'border-purple' : 'border-hair'
+                    `min-h-12 px-2 rounded-xl bg-white text-[14px] border transition-colors ${isFocused ? 'border-purple' : 'border-hair'
                     }`,
                   valueContainer: () => 'px-1.5 gap-1',
                   placeholder: () => 'text-ink-muted',
@@ -216,12 +249,11 @@ export function RaportStropireForm({ onLiveValues }: RaportStropireFormProps = {
                   menu: () => 'mt-1 bg-white rounded-xl border border-hair shadow-lg overflow-hidden z-50',
                   menuList: () => 'py-1 max-h-60',
                   option: ({ isFocused, isSelected }) =>
-                    `px-3 py-2.5 text-[14px] cursor-pointer transition-colors ${
-                      isSelected
-                        ? 'bg-purple/10 text-purple font-semibold'
-                        : isFocused
-                          ? 'bg-hair-soft text-ink'
-                          : 'text-ink'
+                    `px-3 py-2.5 text-[14px] cursor-pointer transition-colors ${isSelected
+                      ? 'bg-purple/10 text-purple font-semibold'
+                      : isFocused
+                        ? 'bg-hair-soft text-ink'
+                        : 'text-ink'
                     }`,
                   noOptionsMessage: () => 'px-3 py-2.5 text-[13px] text-ink-muted text-center',
                 }}
@@ -360,6 +392,7 @@ export function RaportStropireForm({ onLiveValues }: RaportStropireFormProps = {
           <input
             id="scheduled_at"
             type="datetime-local"
+            min={nowLocal()}
             {...register('scheduled_at')}
             className={fieldCls}
             aria-invalid={!!errors.scheduled_at}

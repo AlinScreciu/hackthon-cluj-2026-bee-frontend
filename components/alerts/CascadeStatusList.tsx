@@ -32,7 +32,7 @@ export function CascadeStatusList({ sprayId, initialDispatchCount = 2 }: Cascade
   }, [])
 
   useEffect(() => {
-    if (!data) return
+    if (!data?.dispatches) return
     data.dispatches.forEach(d => {
       const prev = prevStatusRef.current[d.alert_dispatch_id]
       const curr = d.final_status ?? ''

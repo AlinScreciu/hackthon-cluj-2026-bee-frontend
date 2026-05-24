@@ -4,13 +4,18 @@ import { Download } from 'lucide-react'
 import { useANFExport } from '@/lib/api/queries'
 import { ApiError } from '@/lib/api/client'
 
-function todayISO() {
-  return new Date().toISOString().slice(0, 10)
-}
-
 function threeYearsAgoISO() {
   const d = new Date()
   d.setFullYear(d.getFullYear() - 3)
+  return d.toISOString().slice(0, 10)
+}
+
+// Upper bound includes scheduled-future sprays: ANF reports are filed BEFORE
+// application, so most fermier entries have scheduled_at in the near future.
+// One year ahead is comfortably wider than any realistic planning window.
+function oneYearAheadISO() {
+  const d = new Date()
+  d.setFullYear(d.getFullYear() + 1)
   return d.toISOString().slice(0, 10)
 }
 
@@ -22,7 +27,7 @@ export default function RegistruAnfPage() {
     setError('')
     try {
       // farmer_id omitted — BE auto-scopes to the authenticated fermier
-      await anfExport.mutateAsync({ from: threeYearsAgoISO(), to: todayISO() })
+      await anfExport.mutateAsync({ from: threeYearsAgoISO(), to: oneYearAheadISO() })
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Nu s-a putut genera PDF-ul. Reîncearcă.'
       setError(msg)

@@ -1,22 +1,31 @@
 'use client'
 import { useState } from 'react'
 import { Download } from 'lucide-react'
+import { useANFExport } from '@/lib/api/queries'
+import { ApiError } from '@/lib/api/client'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8080/api/v1'
+function todayISO() {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function threeYearsAgoISO() {
+  const d = new Date()
+  d.setFullYear(d.getFullYear() - 3)
+  return d.toISOString().slice(0, 10)
+}
 
 export default function RegistruAnfPage() {
-  const [loading, setLoading] = useState(false)
+  const anfExport = useANFExport()
   const [error, setError] = useState('')
 
   async function handleExport() {
-    setLoading(true)
     setError('')
     try {
-      window.open(`${API_BASE}/spray-reports/anf-export`, '_blank')
-    } catch {
-      setError('Nu s-a putut genera PDF-ul. Reîncearcă.')
-    } finally {
-      setLoading(false)
+      // farmer_id omitted — BE auto-scopes to the authenticated fermier
+      await anfExport.mutateAsync({ from: threeYearsAgoISO(), to: todayISO() })
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : 'Nu s-a putut genera PDF-ul. Reîncearcă.'
+      setError(msg)
     }
   }
 
@@ -31,12 +40,12 @@ export default function RegistruAnfPage() {
 
       <button
         onClick={handleExport}
-        disabled={loading}
+        disabled={anfExport.isPending}
         aria-label="Descarcă registrul ANF în format PDF"
         className="w-full flex items-center justify-center gap-2 h-14 bg-purple text-white font-bold rounded-2xl disabled:opacity-50 transition-opacity"
       >
         <Download size={20} />
-        {loading ? 'Se generează...' : 'Descarcă registrul PDF'}
+        {anfExport.isPending ? 'Se generează...' : 'Descarcă registrul PDF'}
       </button>
     </div>
   )

@@ -16,24 +16,29 @@ export function usePushSubscription() {
     typeof window !== 'undefined' ? localStorage.getItem('ra:push_id') : null
   )
 
-  async function subscribe(): Promise<boolean> {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false
+  async function subscribe(): Promise<{ ok: boolean; error?: string }> {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      return { ok: false, error: 'Browserul nu suportă notificări push.' }
+    }
     try {
       const perm = await Notification.requestPermission()
-      if (perm !== 'granted') return false
+      if (perm !== 'granted') return { ok: false, error: 'Permisiunea a fost refuzată.' }
 
       const { key } = await api.get<{ key: string }>('/push/vapid-public-key')
       const reg = await navigator.serviceWorker.ready
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(key).buffer as ArrayBuffer,
+        applicationServerKey: urlBase64ToUint8Array(key) as BufferSource,
       })
       const { id } = await api.post<{ id: string }>('/push/subscriptions', sub.toJSON())
       localStorage.setItem('ra:push_id', id)
       setSubscriptionId(id)
-      return true
-    } catch {
-      return false
+      return { ok: true }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('push subscribe failed:', err)
+      const msg = err instanceof Error ? err.message : String(err)
+      return { ok: false, error: msg }
     }
   }
 

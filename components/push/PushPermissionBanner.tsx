@@ -23,12 +23,12 @@ export function PushPermissionBanner() {
     setPending(true)
     try {
       await ensureServiceWorker()
-      const ok = await subscribe()
-      if (ok) {
+      const result = await subscribe()
+      if (result.ok) {
         toast.success('Notificările push sunt active.')
         setPermission('granted')
       } else {
-        toast.error('Nu am putut activa notificările push.')
+        toast.error(result.error ? `Notificări push: ${result.error}` : 'Nu am putut activa notificările push.')
       }
     } finally {
       setPending(false)

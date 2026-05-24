@@ -25,8 +25,9 @@ export function Sidebar({ user }: { user: User }) {
   const items = PRIMARY_NAV_BY_ROLE[user.role]
   const root = ROLE_ROOT[user.role]
 
-  const { data: alertsData } = useAlerts('active')
-  const unread = user.role === 'apicultor' ? (alertsData?.items?.length ?? 0) : 0
+  // Apicultor-only endpoint; skip for fermier/inspector to avoid a 403 on every load.
+  const { data: alertsData } = useAlerts('active', { enabled: user.role === 'apicultor' })
+  const unread = alertsData?.items?.length ?? 0
 
   async function handleLogout() {
     await api.post('/auth/logout')

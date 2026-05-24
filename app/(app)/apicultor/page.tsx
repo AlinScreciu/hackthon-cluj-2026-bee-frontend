@@ -4,6 +4,8 @@ import { useAuth } from '@/lib/hooks/useAuth'
 import { ToxBadge, StatusBadge } from '@/components/ui/Badge'
 import { BeeLogo } from '@/components/ui/BeeLogo'
 import { BzzBzzCard } from '@/components/alerts/BzzBzzCard'
+import { PushPermissionBanner } from '@/components/push/PushPermissionBanner'
+import { toast } from 'sonner'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Spinner } from '@/components/feedback/Spinner'
 import Link from 'next/link'
@@ -146,6 +148,11 @@ export default function ApicultorPage() {
   return (
     <div className="px-4 md:px-6 lg:px-8 py-5 space-y-7 lg:max-w-none lg:grid lg:grid-cols-12 lg:gap-6 lg:space-y-0">
 
+      {/* ── Push notification opt-in (hidden once subscribed or dismissed) ── */}
+      <div className="lg:col-span-12">
+        <PushPermissionBanner />
+      </div>
+
       {/* ── Hero ── */}
       {hasAlert ? (
         /* Alert hero */
@@ -196,7 +203,20 @@ export default function ApicultorPage() {
             <BzzBzzCard
               key={heroAlert.alert_dispatch_id}
               alert={heroAlert}
-              onConfirm={(action) => confirmAlert({ id: heroAlert.alert_dispatch_id, action })}
+              onConfirm={(action) =>
+                confirmAlert(
+                  { id: heroAlert.alert_dispatch_id, action },
+                  {
+                    onSuccess: () =>
+                      toast.success(
+                        action === 'move_hives'
+                          ? 'Stupii vor fi mutați. Alerta a fost confirmată.'
+                          : 'Stupii vor fi sigilați. Alerta a fost confirmată.',
+                      ),
+                    onError: () => toast.error('Nu am putut confirma acțiunea. Reîncearcă.'),
+                  },
+                )
+              }
               isPending={confirmPending}
             />
           </div>

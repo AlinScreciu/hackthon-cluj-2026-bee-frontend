@@ -1,0 +1,10 @@
+{
+  "name": "BeeLive",
+  "short_name": "BeeLive",
+  "description": "Notificări pesticide pentru apicultori",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#40288C",
+  "background_color": "#FFFFFF"
+}

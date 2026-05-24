@@ -13,6 +13,7 @@ export const PRIMARY_NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { href: '/apicultor', icon: Home, label: 'Acasă' },
     { href: '/apicultor/stupine', icon: Layers, label: 'Stupine' },
     { href: '/apicultor/alerte', icon: Bell, label: 'Alerte' },
+    { href: '/apicultor/daune', icon: AlertTriangle, label: 'Daune' },
   ],
   fermier: [
     { href: '/fermier', icon: Home, label: 'Acasă' },
@@ -33,6 +34,7 @@ export const MOBILE_NAV_BY_ROLE: Record<Role, NavItem[]> = {
     { href: '/apicultor', icon: Home, label: 'Acasă' },
     { href: '/apicultor/stupine', icon: Layers, label: 'Stupine' },
     { href: '/apicultor/alerte', icon: Bell, label: 'Alerte' },
+    { href: '/apicultor/daune', icon: AlertTriangle, label: 'Daune' },
     { href: '/setari', icon: User, label: 'Profil' },
   ],
   fermier: [
@@ -66,6 +68,9 @@ const PAGE_TITLE_RULES: { match: RegExp; title: string }[] = [
   { match: /^\/apicultor\/stupine\/[^/]+$/, title: 'Detaliu stupină' },
   { match: /^\/apicultor\/alerte$/, title: 'Alertele tale' },
   { match: /^\/apicultor\/alerte\/[^/]+$/, title: 'Alertă' },
+  { match: /^\/apicultor\/daune$/, title: 'Daunele tale' },
+  { match: /^\/apicultor\/daune\/nou$/, title: 'Pagubă nouă' },
+  { match: /^\/apicultor\/daune\/[^/]+$/, title: 'Detaliu pagubă' },
   { match: /^\/fermier$/, title: 'Acasă' },
   { match: /^\/fermier\/parcele$/, title: 'Parcelele tale' },
   { match: /^\/fermier\/parcele\/[^/]+$/, title: 'Detaliu parcelă' },

@@ -46,9 +46,10 @@ function latLngToFloat(lat: number, lng: number, z: number) {
 export interface RiskMapPreviewProps {
   apiaryLat: number; apiaryLng: number
   sprayLat: number; sprayLng: number
+  height?: number
 }
 
-export function RiskMapPreview({ apiaryLat, apiaryLng, sprayLat, sprayLng }: RiskMapPreviewProps) {
+export function RiskMapPreview({ apiaryLat, apiaryLng, sprayLat, sprayLng, height = 110 }: RiskMapPreviewProps) {
   const zoom = 15
 
   // Tile grid centred on the apiary
@@ -69,7 +70,7 @@ export function RiskMapPreview({ apiaryLat, apiaryLng, sprayLat, sprayLng }: Ris
   }
 
   return (
-    <div className="w-full rounded-[10px] overflow-hidden bg-[#aad3df] relative" style={{ height: 110, pointerEvents: 'none', userSelect: 'none' }}>
+    <div className="w-full rounded-[10px] overflow-hidden bg-[#aad3df] relative" style={{ height, pointerEvents: 'none', userSelect: 'none' }}>
       {/* Tile grid — entire container is pointer-events:none so scroll passes through */}
       <div style={{
         position: 'absolute', width: 768, height: 768,

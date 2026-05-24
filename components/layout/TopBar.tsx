@@ -20,9 +20,10 @@ export function TopBar({ user }: { user: User }) {
   const root = ROLE_ROOT[user.role]
   const pageTitle = getPageTitle(pathname)
 
-  // Bell badge: unread active alerts (apicultor only)
-  const { data: alertsData } = useAlerts('active')
-  const unreadCount = user.role === 'apicultor' ? (alertsData?.items?.length ?? 0) : 0
+  // Bell badge: unread active alerts. Apicultor-only endpoint; skip the call
+  // entirely for other roles so they don't take a 403 on every page load.
+  const { data: alertsData } = useAlerts('active', { enabled: user.role === 'apicultor' })
+  const unreadCount = alertsData?.items?.length ?? 0
 
   async function handleLogout() {
     await api.post('/auth/logout')

@@ -67,6 +67,7 @@ export interface SprayReport {
   substance: string
   toxicity: Toxicity
   surface_ha: number
+  dose_kg_ha: number
   scheduled_at: string
   duration_hours: number
   notes: string | null
@@ -74,6 +75,63 @@ export interface SprayReport {
   affected_apiaries_count: number
   ledger_hash: string
   created_at: string
+  // AI assessment, populated by the Python AI service
+  ai_risk_score?: number
+  ai_risk_level?: string
+  ai_explanation_ro?: string
+  ai_recommended_action?: string
+  ai_warnings?: string[]
+  ai_zones?: GeoJSONFeatureCollection
+}
+
+// Generic GeoJSON wrapper (we only consume Polygon features today).
+export interface GeoJSONFeatureCollection {
+  type: 'FeatureCollection'
+  features: Array<{
+    type: 'Feature'
+    properties: Record<string, unknown>
+    geometry: { type: 'Polygon'; coordinates: number[][][] }
+  }>
+}
+
+// POST /spray-reports/risk-preview request + response.
+export interface RiskPreviewRequest {
+  parcel_id: string
+  surface_ha: number
+  dose_kg_ha: number
+  crop: string
+  substance: string
+  scheduled_at: string
+  duration_hours: number
+}
+
+export interface NearbyApiary {
+  id: string
+  name: string
+  lat: number
+  lng: number
+  hive_count: number
+  distance_m: number
+  // True when the apiary sits inside one of the notification zones (A1 or AW)
+  // and should therefore be alerted. False = nearby but safe due to wind.
+  in_zone: boolean
+}
+
+export interface RiskPreview {
+  risk_radius_m: number
+  affected_apiaries: number
+  nearby_apiaries: NearbyApiary[]
+  parcel_lat: number
+  parcel_lng: number
+  toxicity: Toxicity
+  severity: string
+  risk_score: number
+  wind_direction_deg: number
+  wind_speed_kmh: number
+  explanation_ro: string
+  recommended_action: string
+  warnings: string[]
+  zones?: GeoJSONFeatureCollection
 }
 
 export interface AlertDispatchPublic {
@@ -158,6 +216,13 @@ export interface Substance {
   toxicity: Toxicity
 }
 
+export interface Weather {
+  wind_direction_deg: number
+  wind_speed_ms: number
+  temperature_c: number
+  fetched_at: string
+}
+
 // API error shape
 export interface ApiErrorBody {
   error: {
@@ -171,6 +236,7 @@ export interface ApiErrorBody {
 export interface SprayReportCreate {
   parcel_id: string
   surface_ha: number
+  dose_kg_ha: number
   crop: string
   substance: string
   scheduled_at: string
@@ -187,4 +253,70 @@ export interface ApiaryCreate {
   start_date: string
   end_date?: string
   notes?: string
+}
+
+export interface UploadSignRequest {
+  filename: string
+  mime: string
+  byte_size: number
+}
+
+export interface SignedUploadResponse {
+  upload_url: string
+  key: string
+  expires_in: number
+}
+
+export interface DamageClaimCreate {
+  apiary_id: string
+  related_spray_id?: string | null
+  description: string
+  hive_loss_count: number
+  gps_lat: number
+  gps_lng: number
+  photos: string[]
+}
+
+// Inspector aggregations (GET /inspector/farmers, /inspector/farmers/{id})
+export interface FarmerSummary {
+  id: string
+  full_name: string
+  county: string
+  locality: string
+  spray_count: number
+  damage_count: number
+}
+
+export interface FarmerContact {
+  id: string
+  cnp: string
+  full_name: string
+  email: string
+  phone: string
+  county: string
+  locality: string
+}
+
+export interface InspectorRecentSpray {
+  id: string
+  parcel_id: string
+  substance: string
+  toxicity: Toxicity
+  surface_ha: number
+  scheduled_at: string
+  status: string
+  affected_apiaries_count: number
+}
+
+export interface FarmerDetail {
+  farmer: FarmerContact
+  sprays_last_30d: InspectorRecentSpray[]
+  sprays_total: number
+  damages_filed_against: number
+}
+
+export interface ANFExportRequest {
+  farmer_id?: string
+  from: string // YYYY-MM-DD
+  to: string   // YYYY-MM-DD
 }

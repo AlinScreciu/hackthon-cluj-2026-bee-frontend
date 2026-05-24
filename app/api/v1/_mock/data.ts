@@ -261,7 +261,7 @@ export function getUserById(id: string): User | undefined {
 export function createSprayReport(
   farmerId: string,
   body: {
-    parcel_id: string; surface_ha: number; crop: string; substance: string;
+    parcel_id: string; surface_ha: number; dose_kg_ha?: number; crop: string; substance: string;
     scheduled_at: string; duration_hours: number; notes?: string
   }
 ): SprayReport & { created_at_ms: number; initial_dispatches: AlertDispatchPublic[] } {
@@ -283,6 +283,7 @@ export function createSprayReport(
     substance: body.substance,
     toxicity,
     surface_ha: body.surface_ha,
+    dose_kg_ha: body.dose_kg_ha ?? 0,
     scheduled_at: body.scheduled_at,
     duration_hours: body.duration_hours,
     notes: body.notes ?? null,
@@ -405,7 +406,7 @@ sprayReports.set('spray-seed-1', {
   substance: 'Confidor Energy',
   toxicity: 'T+',
   surface_ha: 4.5,
-  scheduled_at: '2026-05-20T06:00:00Z',
+  dose_kg_ha: 0,  scheduled_at: '2026-05-20T06:00:00Z',
   duration_hours: 3,
   notes: 'Tratament preventiv',
   status: 'completed',
@@ -490,7 +491,7 @@ sprayReports.set('spray-seed-2', {
   substance: 'Mospilan 20 SG',
   toxicity: 'T',
   surface_ha: 7.2,
-  scheduled_at: '2026-05-22T07:00:00Z',
+  dose_kg_ha: 0,  scheduled_at: '2026-05-22T07:00:00Z',
   duration_hours: 5,
   notes: null,
   status: 'completed',
@@ -544,7 +545,7 @@ sprayReports.set('spray-seed-3', {
   substance: 'Decis Mega',
   toxicity: 'T-',
   surface_ha: 3.8,
-  scheduled_at: '2026-05-23T08:00:00Z',
+  dose_kg_ha: 0,  scheduled_at: '2026-05-23T08:00:00Z',
   duration_hours: 2,
   notes: null,
   status: 'in_progress',
@@ -564,7 +565,7 @@ sprayReports.set('spray-seed-4', {
   substance: 'Confidor',
   toxicity: 'T',
   surface_ha: 7.2,
-  scheduled_at: new Date(Date.now() + 86400 * 1000).toISOString(),
+  dose_kg_ha: 0,  scheduled_at: new Date(Date.now() + 86400 * 1000).toISOString(),
   duration_hours: 4,
   notes: null,
   status: 'scheduled',
@@ -585,7 +586,7 @@ sprayReports.set('spray-seed-urgent', {
   substance: 'Confidor Energy',
   toxicity: 'T+',
   surface_ha: 6.4,
-  scheduled_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+  dose_kg_ha: 0,  scheduled_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
   duration_hours: 4,
   notes: null,
   status: 'in_progress',

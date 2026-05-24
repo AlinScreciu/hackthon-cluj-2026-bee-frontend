@@ -3,7 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from './client'
 import type {
   User, Apiary, Parcel, SprayReport, AlertView,
-  CascadeStatus, Substance, AlertDispatchPublic, DamageClaim, LedgerEventSummary
+  CascadeStatus, Substance, Weather, AlertDispatchPublic, DamageClaim, LedgerEventSummary,
+  RiskPreview, RiskPreviewRequest,
+  UploadSignRequest, SignedUploadResponse, DamageClaimCreate,
+  FarmerSummary, FarmerDetail, ANFExportRequest,
 } from './types'
 
 export const keys = {
@@ -18,10 +21,12 @@ export const keys = {
   alerts: (status?: string) => ['alerts', status] as const,
   alert: (id: string) => ['alerts', id] as const,
   substances: ['substances'] as const,
+  weather: (lat?: number, lng?: number) => ['weather', lat, lng] as const,
   mapData: (bbox?: string) => ['map-data', bbox] as const,
   farmers: ['farmers'] as const,
   farmer: (id: string) => ['farmers', id] as const,
   damageClaims: ['damage-claims'] as const,
+  damageClaim: (id: string) => ['damage-claims', id] as const,
   events: ['events'] as const,
 }
 
@@ -55,12 +60,13 @@ export function useParcels() {
   })
 }
 
-export function useSprayReports(status?: 'active' | 'past') {
+export function useSprayReports(status?: 'active' | 'past', opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: keys.sprayReports(status),
     queryFn: () => api.get<{ items: SprayReport[]; next_cursor: string | null }>(
       `/spray-reports${status ? `?status=${status}` : ''}`
     ),
+    enabled: opts?.enabled ?? true,
   })
 }
 
@@ -82,12 +88,13 @@ export function useCascadeStatus(sprayId: string) {
   })
 }
 
-export function useAlerts(status?: 'active' | 'all') {
+export function useAlerts(status?: 'active' | 'all', opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: keys.alerts(status),
     queryFn: () => api.get<{ items: AlertView[] }>(
       `/alerts${status ? `?status=${status}` : ''}`
     ),
+    enabled: opts?.enabled ?? true,
   })
 }
 
@@ -106,6 +113,28 @@ export function useSubstances() {
   })
 }
 
+export function useWeather(lat?: number, lng?: number) {
+  return useQuery({
+    queryKey: keys.weather(lat, lng),
+    queryFn: () => api.get<Weather>(`/reference/weather?lat=${lat}&lng=${lng}`),
+    enabled: typeof lat === 'number' && typeof lng === 'number',
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+// useRiskPreview drives the AI risk assessment shown on the new-spray form.
+// The form passes the current values; we debounce client-side and only fire
+// when the required subset is present.
+export function useRiskPreview(req: RiskPreviewRequest | null) {
+  return useQuery({
+    queryKey: ['risk-preview', req] as const,
+    queryFn: () => api.post<RiskPreview>('/spray-reports/risk-preview', req!),
+    enabled: !!req,
+    staleTime: 30 * 1000,
+    retry: false,
+  })
+}
+
 export function useInspectorMapData(bbox?: string) {
   return useQuery({
     queryKey: keys.mapData(bbox),
@@ -121,7 +150,36 @@ export function useInspectorMapData(bbox?: string) {
 export function useFarmers() {
   return useQuery({
     queryKey: keys.farmers,
-    queryFn: () => api.get<{ items: unknown[] }>('/inspector/farmers'),
+    queryFn: () => api.get<{ items: FarmerSummary[] }>('/inspector/farmers'),
+  })
+}
+
+export function useFarmer(id: string) {
+  return useQuery({
+    queryKey: keys.farmer(id),
+    queryFn: () => api.get<FarmerDetail>(`/inspector/farmers/${id}`),
+    enabled: !!id,
+  })
+}
+
+// useANFExport posts a date range to /spray-reports/anf-export and triggers a
+// browser download for the returned application/pdf blob. Returns the mutation
+// so callers can disable a button while in-flight and show toast on error.
+export function useANFExport() {
+  return useMutation({
+    mutationFn: async (req: ANFExportRequest) => {
+      const blob = await api.postForBlob('/spray-reports/anf-export', req)
+      const filename = `anf-export-${req.from}_${req.to}.pdf`
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      return { filename, byte_size: blob.size }
+    },
   })
 }
 
@@ -132,13 +190,43 @@ export function useDamageClaims() {
   })
 }
 
+export function useDamageClaim(id: string) {
+  return useQuery({
+    queryKey: keys.damageClaim(id),
+    queryFn: () => api.get<{ claim: DamageClaim }>(`/damage-claims/${id}`),
+  })
+}
+
+export function useSignUpload() {
+  return useMutation({
+    mutationFn: (req: UploadSignRequest) =>
+      api.post<SignedUploadResponse>('/uploads/sign', req),
+  })
+}
+
+export function useCreateDamageClaim() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: DamageClaimCreate) =>
+      api.post<{ claim: DamageClaim; ledger_hash: string }>('/damage-claims', input),
+    onSuccess: () => {
+      // Bare prefix matches every variant under ['damage-claims', ...].
+      qc.invalidateQueries({ queryKey: ['damage-claims'] })
+    },
+  })
+}
+
 export function useConfirmAlert() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, action }: { id: string; action: 'move_hives' | 'seal_in_place' }) =>
       api.post<{ alert: AlertView; ledger_hash: string }>(`/alerts/${id}/confirm`, { action }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: keys.alerts() })
+      // Use bare prefix so partial-match invalidates every variant:
+      // ['alerts', 'active'], ['alerts', 'all'], ['alerts', <id>].
+      // keys.alerts() would resolve to ['alerts', undefined] which does NOT
+      // match those subset keys in TanStack v5.
+      qc.invalidateQueries({ queryKey: ['alerts'] })
     },
   })
 }

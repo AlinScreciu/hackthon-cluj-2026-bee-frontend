@@ -9,12 +9,13 @@ import { useParcels, useSubstances } from '@/lib/api/queries'
 import { api } from '@/lib/api/client'
 import { ApiError } from '@/lib/api/client'
 import { ToxBadge } from '@/components/ui/Badge'
-import { Bell, TriangleAlert } from 'lucide-react'
+import { TriangleAlert } from 'lucide-react'
 import type { Toxicity } from '@/lib/api/types'
 
 const schema = z.object({
   parcel_id: z.string().min(1, 'Selectează o parcelă'),
   surface_ha: z.number({ error: 'Introduceți suprafața' }).positive('Suprafața trebuie să fie pozitivă'),
+  dose_kg_ha: z.number({ error: 'Introduceți doza' }).positive('Doza trebuie să fie pozitivă'),
   crop: z.string().min(1, 'Introduceți cultura'),
   substance: z.string().min(1, 'Selectează o substanță'),
   scheduled_at: z.string().min(1, 'Selectează data'),
@@ -37,13 +38,17 @@ export const RISK_RADIUS: Record<Toxicity, string> = {
   'T-': '750 m',
 }
 
-// Mock affected beekeepers — in production this comes from the API
-export const MOCK_AFFECTED = ['Andrei Bodea', 'Cristina Pop', 'Vasile Olaru']
+// Real affected count is computed server-side on submit (Phase 6 adds a preview endpoint).
 
 export interface RaportLiveValues {
   substance: string
   parcel_id: string
   toxicity: Toxicity | null
+  surface_ha: number | null
+  dose_kg_ha: number | null
+  crop: string
+  scheduled_at: string
+  duration_hours: number | null
 }
 
 export interface RaportStropireFormProps {
@@ -68,6 +73,7 @@ export function RaportStropireForm({ onLiveValues }: RaportStropireFormProps = {
     defaultValues: {
       parcel_id: lastParcelId ?? '',
       surface_ha: undefined,
+      dose_kg_ha: 1,
       crop: '',
       substance: '',
       scheduled_at: tomorrow(),
@@ -79,7 +85,10 @@ export function RaportStropireForm({ onLiveValues }: RaportStropireFormProps = {
   const selectedSubstance = watch('substance')
   const selectedParcelId = watch('parcel_id')
   const selectedSurfaceHa = watch('surface_ha')
+  const selectedDose = watch('dose_kg_ha')
   const selectedScheduledAt = watch('scheduled_at')
+  const selectedCrop = watch('crop')
+  const selectedDuration = watch('duration_hours')
   const parcelMaxHa = parcels.find(p => p.id === selectedParcelId)?.surface_ha
 
   // Bee-safe window: hours 21:00–05:59 (after sunset / before sunrise).
@@ -112,8 +121,13 @@ export function RaportStropireForm({ onLiveValues }: RaportStropireFormProps = {
       substance: selectedSubstance ?? '',
       parcel_id: selectedParcelId ?? '',
       toxicity: selectedToxicity,
+      surface_ha: typeof selectedSurfaceHa === 'number' ? selectedSurfaceHa : null,
+      dose_kg_ha: typeof selectedDose === 'number' ? selectedDose : null,
+      crop: selectedCrop ?? '',
+      scheduled_at: selectedScheduledAt ?? '',
+      duration_hours: typeof selectedDuration === 'number' ? selectedDuration : null,
     })
-  }, [selectedSubstance, selectedParcelId, selectedToxicity, onLiveValues])
+  }, [selectedSubstance, selectedParcelId, selectedToxicity, selectedSurfaceHa, selectedDose, selectedCrop, selectedScheduledAt, selectedDuration, onLiveValues])
 
   useEffect(() => {
     if (selectedParcelId) {
@@ -152,7 +166,7 @@ export function RaportStropireForm({ onLiveValues }: RaportStropireFormProps = {
   const selectedParcel = parcels.find(p => p.id === selectedParcelId)
 
   return (
-    <form id="raport-stropire-form" onSubmit={handleSubmit(onSubmit)} className="space-y-5 pb-56 lg:pb-0">
+    <form id="raport-stropire-form" onSubmit={handleSubmit(onSubmit)} className="space-y-5">
 
       {/* Parcel */}
       <div>
@@ -260,6 +274,32 @@ export function RaportStropireForm({ onLiveValues }: RaportStropireFormProps = {
         </div>
       </div>
 
+      {/* Dose: kg/ha + computed total */}
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <label htmlFor="dose_kg_ha" className={labelCls.replace('mb-1.5', '')}>Doză (kg/ha)</label>
+          {typeof selectedDose === 'number' && typeof selectedSurfaceHa === 'number' && selectedDose > 0 && selectedSurfaceHa > 0 && (
+            <span className="text-[11px] text-ink-muted">
+              ≈ <strong className="text-ink-soft">{(selectedDose * selectedSurfaceHa).toFixed(2)} kg</strong> total
+            </span>
+          )}
+        </div>
+        <input
+          id="dose_kg_ha"
+          type="number"
+          step="any"
+          min="0.01"
+          placeholder="1.0"
+          {...register('dose_kg_ha', { valueAsNumber: true })}
+          className={fieldCls}
+          aria-invalid={!!errors.dose_kg_ha}
+          aria-describedby={errors.dose_kg_ha ? 'err-dose' : 'hint-dose'}
+        />
+        {errors.dose_kg_ha
+          ? <p id="err-dose" className={errorCls}>{errors.dose_kg_ha.message}</p>
+          : <p id="hint-dose" className="text-[11px] text-ink-muted mt-1">Doza pe hectar conform etichetei produsului</p>}
+      </div>
+
       {/* Substance — pill buttons */}
       <div>
         <div className="flex items-center justify-between mb-2">
@@ -305,18 +345,9 @@ export function RaportStropireForm({ onLiveValues }: RaportStropireFormProps = {
           )}
         />
 
-        {selectedToxicity && (
-          <div
-            className="mt-3 rounded-xl px-3 py-2 text-[13px] font-medium"
-            style={
-              selectedToxicity === 'T+' ? { background: 'rgba(220,38,38,0.08)', color: '#B91C1C' } :
-                selectedToxicity === 'T' ? { background: 'rgba(238,167,39,0.10)', color: '#92400E' } :
-                  { background: 'rgba(22,163,74,0.08)', color: '#166534' }
-            }
-          >
-            Raza de risc: <strong>{RISK_RADIUS[selectedToxicity]}</strong>
-            {selectedToxicity === 'T-' && ' · Fără apel vocal'}
-          </div>
+        {/* Risk radius is shown in the preview panel; not duplicated here. */}
+        {selectedToxicity === 'T-' && (
+          <p className="text-[11.5px] text-ink-muted mt-2">Toxicitate scăzută · fără apel vocal de avertizare</p>
         )}
 
         {errors.substance && <p id="err-substance" className={errorCls} role="alert">{errors.substance.message}</p>}
@@ -387,45 +418,9 @@ export function RaportStropireForm({ onLiveValues }: RaportStropireFormProps = {
         </p>
       )}
 
-      {/* Sticky bottom CTA — mobile only (desktop submit lives in RiskPreviewPanel) */}
-      {/* Sits ABOVE MobileTabBar (which is fixed bottom-0 z-30 ~72px tall) */}
-      <div
-        className="fixed left-0 right-0 z-20 lg:hidden"
-        style={{ bottom: 'calc(72px + env(safe-area-inset-bottom))' }}
-      >
-        <div className="max-w-lg mx-auto px-4">
-          {isValid && selectedToxicity ? (
-            <div className="rounded-[16px] px-4 pt-3 pb-4 bg-white border border-purple/20 shadow-lg">
-              <p className="text-[13px] text-ink-soft leading-snug mb-3">
-                <span className="text-purple font-bold">{MOCK_AFFECTED.length} apicultori</span>
-                {' '}în raza de {RISK_RADIUS[selectedToxicity]} vor primi alertă
-              </p>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full h-12 rounded-xl font-bold text-[15px] flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-50 bg-purple text-white hover:bg-purple-soft"
-              >
-                {submitting ? (
-                  <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent" style={{ animation: 'spin 0.7s linear infinite' }} />
-                ) : (
-                  <>
-                    <Bell size={16} />
-                    Notifică toți
-                  </>
-                )}
-              </button>
-            </div>
-          ) : (
-            <button
-              type="submit"
-              disabled={submitting || !selectedParcelId}
-              className="w-full h-12 bg-purple text-white font-bold text-[15px] rounded-xl shadow-lg disabled:opacity-40 hover:bg-purple-soft transition-colors"
-            >
-              {submitting ? 'Se trimite...' : 'Notifică apicultorii'}
-            </button>
-          )}
-        </div>
-      </div>
+      {/* On mobile, the RiskPreviewPanel is rendered below this form by the
+          parent page and provides its own submit button. We no longer ship a
+          separate sticky CTA so there's only ONE submit button visible. */}
     </form>
   )
 }
